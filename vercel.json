@@ -1,0 +1,11 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "next build",
+  "devCommand": "next dev",
+  "installCommand": "npm install",
+  "functions": {
+    "src/app/api/transform/route.ts": { "maxDuration": 30 },
+    "src/app/api/send-email/route.ts": { "maxDuration": 15 },
+    "src/app/oauth/callback/route.ts": { "maxDuration": 10 }
+  }
+}
