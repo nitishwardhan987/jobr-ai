@@ -1,64 +1,55 @@
 'use client';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Rocket, ShieldCheck, Zap } from 'lucide-react';
+import { Rocket, ShieldCheck, Zap, ShoppingBag } from 'lucide-react';
 
 export default function HomePage() {
   return (
-    <div className="bg-slate-950 text-white min-h-[calc(100vh-80px)] selection:bg-blue-500 selection:text-white">
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 px-6 overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
+    <div className="bg-[#0a0f1e] text-slate-200 flex flex-col">
+      
+      {/* GLOWING HERO */}
+      <section className="relative pt-24 pb-20 px-6 overflow-hidden flex flex-col items-center justify-center text-center">
+        {/* Multi-tone Soothing Glows */}
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-cyan-500/10 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none" />
         
-        <div className="max-w-5xl mx-auto text-center relative z-10">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-blue-400 text-[10px] font-black uppercase tracking-[0.3em] mb-8">
-              <Zap size={14} fill="currentColor" /> Powered by Gemini 3 Flash Preview
-            </span>
-            <h1 className="text-6xl md:text-8xl font-black tracking-tighter mb-8 leading-[0.9]">
-              Own the <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-600">Shortlist.</span>
-            </h1>
-            <p className="text-slate-400 text-lg md:text-2xl font-medium max-w-2xl mx-auto mb-12 leading-relaxed">
-              Automated CV rewriting using the Google XYZ formula. Privacy-first, developer-focused, and built for 0-to-1 impact.
-            </p>
-          </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="relative z-10">
+          <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/5 border border-cyan-500/20 text-cyan-400 text-[9px] font-black uppercase tracking-[0.3em] mb-8">
+            <Zap size={12} fill="currentColor" /> Neural Impact Engine v3
+          </span>
+          
+          <h1 className="text-6xl md:text-8xl font-black tracking-tighter mb-8 leading-[0.9] text-white">
+            Own the <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-400">Shortlist.</span>
+          </h1>
+          
+          <p className="text-slate-400 text-lg md:text-xl font-medium max-w-2xl mx-auto mb-12">
+            Automated CV rewriting using the Google XYZ formula.
+            Soothing, powerful, and built for 0-to-1 impact.
+          </p>
 
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="flex flex-col md:flex-row gap-6 justify-center items-center"
-          >
-            <Link href="/auth" className="w-full md:w-auto px-12 py-5 bg-white text-slate-950 font-black rounded-full hover:scale-105 transition-transform shadow-2xl shadow-white/10">
-              CREATE YOUR ACCOUNT
+          <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
+            <Link href="/auth" className="w-full md:w-auto px-12 py-5 bg-white text-[#0a0f1e] font-black rounded-full hover:shadow-cyan-500/20 shadow-2xl transition-all">
+              GET STARTED
             </Link>
-            <Link href="/auth" className="w-full md:w-auto px-12 py-5 bg-white/5 border border-white/10 text-white font-bold rounded-full hover:bg-white/10 transition-all">
-              SIGN IN
+            <Link href="/merch" className="w-full md:w-auto px-12 py-5 bg-slate-900/50 border border-white/10 text-white font-black rounded-full hover:bg-slate-800 transition-all flex items-center gap-3">
+              <ShoppingBag size={18} className="text-cyan-400" /> EXPLORE MERCH
             </Link>
-          </motion.div>
-        </div>
+          </div>
+        </motion.div>
       </section>
 
-      {/* Bento Grid Features */}
-      <section className="max-w-7xl mx-auto py-20 px-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* VIBRANT BENTO BOXES */}
+      <section className="max-w-6xl mx-auto py-20 px-10 grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
         {[
-          { title: "Privacy Guaranteed", icon: ShieldCheck, desc: "Your CV and API keys never touch our servers. BYOK model." },
-          { title: "Google XYZ Formula", icon: Rocket, desc: "Every bullet point is structured for maximum impact and recruiter clarity." },
-          { title: "Live Transformation", icon: Zap, desc: "See your resume transform in real-time with side-by-side AI preview." }
-        ].map((feature, i) => (
-          <motion.div 
-            key={i}
-            whileHover={{ y: -5 }}
-            className="p-10 bg-white/5 border border-white/10 rounded-[40px] hover:border-blue-500/50 transition-all"
-          >
-            <feature.icon className="text-blue-500 mb-6" size={32} />
-            <h3 className="text-xl font-black mb-4 uppercase tracking-tight">{feature.title}</h3>
-            <p className="text-slate-500 leading-relaxed font-medium">{feature.desc}</p>
-          </motion.div>
+          { title: "Privacy First", icon: ShieldCheck, color: "text-cyan-400", bg: "bg-cyan-500/5" },
+          { title: "XYZ Impact", icon: Rocket, color: "text-indigo-400", bg: "bg-indigo-500/5" },
+          { title: "Live Preview", icon: Zap, color: "text-yellow-400", bg: "bg-yellow-500/5" }
+        ].map((f, i) => (
+          <div key={i} className={`p-10 ${f.bg} border border-white/5 rounded-[40px] hover:border-white/10 transition-all group`}>
+            <f.icon className={`${f.color} mb-6 group-hover:scale-110 transition-transform`} size={32} />
+            <h3 className="text-sm font-black mb-4 uppercase tracking-widest text-white">{f.title}</h3>
+            <p className="text-slate-500 text-xs leading-relaxed font-medium">Built for the Bangalore Tech Elite.</p>
+          </div>
         ))}
       </section>
     </div>
