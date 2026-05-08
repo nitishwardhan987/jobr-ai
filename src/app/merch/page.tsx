@@ -1,144 +1,209 @@
 'use client';
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingBag, Box, Zap, Upload } from "lucide-react";
+import { ShoppingBag, Zap, Palette, ChevronLeft, Upload, Move, Box } from "lucide-react";
 
 // ──────────────────────────────────────────────
-// UPDATED PRODUCT DATA
+// EXACT FILENAME MAPPING
 // ──────────────────────────────────────────────
+const CATEGORIES = ["All", "Apparel", "Bottoms", "Accessories", "Stationery"];
+
 const PRODUCTS = [
   {
-    id: "classic-tee",
-    name: "Classic Crew Tee",
+    id: "optic-wash-tee",
+    name: "Optic Wash Oversize Tee",
     category: "Apparel",
-    description: "100% combed ring-spun cotton, 180gsm. Perfect for cohort welcome kits.",
-    colors: ["#1e293b", "#f8fafc", "#3730a3", "#064e3b"],
-    colorNames: ["Slate Black", "Off White", "Deep Indigo", "Forest"],
-    tiers: [{ min: 100, price: 260 }],
-    type: 'tee'
+    price: 479,
+    // UPDATED to .png per your correction
+    image: "/16639907304364plus-size-tee_website-final.png", 
   },
   {
     id: "premium-hoodie",
-    name: "Premium Pullover Hoodie",
+    name: "Classic Pullover Hoodie",
     category: "Apparel",
-    description: "320gsm fleece blend. Flagship item for EdTech cohorts.",
-    colors: ["#312e81", "#1e293b", "#7f1d1d", "#064e3b"],
-    colorNames: ["Indigo", "Slate Black", "Crimson", "Forest"],
-    tiers: [{ min: 100, price: 525 }],
-    type: 'hoodie'
+    price: 999,
+    image: "/16327587616151ebe9ad1a0jackets-and-pullovers.svg", 
   },
   {
-    id: "steel-bottle",
-    name: "Insulated Steel Bottle",
-    category: "Drinkware",
-    description: "750ml, 18/8 stainless steel. Laser-etched logo precision.",
-    colors: ["#374151", "#f8fafc", "#1e3a8a"],
-    colorNames: ["Matte Black", "White", "Blue"],
-    tiers: [{ min: 100, price: 345 }],
-    type: 'bottle'
+    id: "tech-joggers",
+    name: "Tech Fleece Joggers",
+    category: "Bottoms",
+    price: 899,
+    image: "/16556998541354Jogger.png",
   },
+  {
+    id: "cohort-cap",
+    name: "Premium Snapback Cap",
+    category: "Accessories",
+    price: 345,
+    image: "/1633358660615b13444dfd21630042360612878f8986d016297183166123.jpg",
+  },
+  {
+    id: "neural-mug",
+    name: "Ceramic Coffee Mug",
+    category: "Accessories",
+    price: 249,
+    image: "/16327587376151ebd1a7a43coffee-mug-black.svg",
+  },
+  {
+    id: "stationery-kit",
+    name: "Cohort Stationery Set",
+    category: "Stationery",
+    price: 159,
+    image: "/16327587236151ebc3d5961stationery.svg",
+  }
 ];
 
-export default function ProductCatalog() {
-  return (
-    <section className="bg-[#05070a] min-h-screen py-20 px-10">
-      <header className="mb-16">
-        <h1 className="text-4xl font-black italic tracking-tighter text-white mb-2">Product Catalog</h1>
-        <p className="text-slate-500 text-sm font-medium">Tiered bulk pricing for EdTech cohorts and tech startups.</p>
-      </header>
+export default function JobrMerchStore() {
+  const [view, setView] = useState<'catalog' | 'studio'>('catalog');
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {PRODUCTS.map(product => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-// ──────────────────────────────────────────────
-// INTERACTIVE PRODUCT CARD
-// ──────────────────────────────────────────────
-function ProductCard({ product }: any) {
-  const [activeColor, setActiveColor] = useState(0);
+  const filteredProducts = PRODUCTS.filter(p => activeCategory === "All" || p.category === activeCategory);
 
   return (
-    <div className="bg-slate-900/30 border border-white/5 rounded-[40px] overflow-hidden group hover:border-blue-500/40 transition-all duration-500">
-      {/* Dynamic Image Area */}
-      <div 
-        className="aspect-[4/5] flex items-center justify-center relative transition-colors duration-700"
-        style={{ backgroundColor: product.colors[activeColor] }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent pointer-events-none" />
-        
-        {/* SVG Mockup Shapes */}
-        <div className="relative z-10 w-48 h-48 drop-shadow-2xl">
-           <ProductSVG type={product.type} />
-        </div>
+    <div className="bg-[#0a0f1e] min-h-screen text-slate-200 selection:bg-cyan-500/30">
+      <AnimatePresence mode="wait">
+        {view === 'catalog' ? (
+          <motion.div key="catalog" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="max-w-7xl mx-auto py-20 px-8">
+            <header className="mb-16">
+              <span className="text-cyan-400 text-[10px] font-black uppercase tracking-[0.3em] mb-4 block underline underline-offset-8 decoration-cyan-500/30">Merch Ecosystem v1.0</span>
+              <h1 className="text-6xl font-black italic text-white tracking-tighter mb-10">Product Catalog</h1>
+              
+              <div className="flex flex-wrap gap-4">
+                {CATEGORIES.map(cat => (
+                  <button 
+                    key={cat} onClick={() => setActiveCategory(cat)}
+                    className={`px-10 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border ${activeCategory === cat ? 'bg-white text-black border-white shadow-xl shadow-white/10' : 'bg-white/5 text-slate-500 border-white/5 hover:text-slate-300'}`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </header>
 
-        <span className="absolute top-6 left-6 px-3 py-1 bg-black/40 backdrop-blur-xl rounded-full text-[9px] font-black text-blue-400 uppercase tracking-widest border border-white/10">
-          {product.category}
-        </span>
-      </div>
-
-      {/* Content Area */}
-      <div className="p-8 space-y-6">
-        <div>
-          <h3 className="text-xl font-black text-white mb-2">{product.name}</h3>
-          <p className="text-slate-500 text-xs leading-relaxed font-medium h-8 line-clamp-2 italic">
-            {product.description}
-          </p>
-        </div>
-
-        {/* Color Selection */}
-        <div className="flex gap-2 items-center">
-          {product.colors.map((color: string, i: number) => (
-            <button
-              key={i}
-              onClick={() => setActiveColor(i)}
-              className={`w-6 h-6 rounded-full border-2 transition-all ${activeColor === i ? 'border-blue-500 scale-110' : 'border-transparent opacity-50 hover:opacity-100'}`}
-              style={{ backgroundColor: color }}
-              title={product.colorNames[i]}
-            />
-          ))}
-          <span className="ml-2 text-[10px] font-black text-slate-600 uppercase tracking-tighter">
-            {product.colorNames[activeColor]}
-          </span>
-        </div>
-
-        <div className="flex justify-between items-end pt-4 border-t border-white/5">
-          <div>
-            <p className="text-[9px] text-slate-500 uppercase font-black tracking-widest mb-1">Starting at</p>
-            <p className="text-2xl font-black text-white">₹{product.tiers[0].price}</p>
-          </div>
-          <button className="bg-blue-600 hover:bg-blue-500 px-8 py-3 rounded-full text-[10px] font-black text-white uppercase tracking-widest transition-all shadow-lg shadow-blue-600/20 active:scale-95">
-            Customize
-          </button>
-        </div>
-      </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+              {filteredProducts.map(p => (
+                <div key={p.id} className="bg-slate-900/40 border border-white/5 rounded-[56px] p-10 hover:border-cyan-500/30 transition-all group shadow-2xl">
+                  <div className="aspect-square mb-8 overflow-hidden rounded-[40px] bg-slate-950 flex items-center justify-center relative">
+                    <img src={p.image} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-1000" alt={p.name} />
+                  </div>
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-start">
+                      <h3 className="text-2xl font-black text-white italic tracking-tighter leading-tight max-w-[180px]">{p.name}</h3>
+                      <p className="text-2xl font-black text-white italic">₹{p.price}</p>
+                    </div>
+                    <button 
+                      onClick={() => { setSelectedProduct(p); setView('studio'); }}
+                      className="w-full bg-cyan-600 text-white py-5 rounded-3xl text-[11px] font-black uppercase tracking-widest hover:bg-cyan-500 transition-all shadow-xl shadow-cyan-900/20"
+                    >
+                      CUSTOMIZE DESIGN
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        ) : (
+          <DesignStudio product={selectedProduct} onBack={() => setView('catalog')} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-// ──────────────────────────────────────────────
-// SVG MOCKUP SHAPES
-// ──────────────────────────────────────────────
-function ProductSVG({ type }: { type: string }) {
-  if (type === 'tee') return (
-    <svg viewBox="0 0 100 100" className="w-full h-full fill-white/10 stroke-white/20" strokeWidth="2">
-      <path d="M20 20 L35 20 L40 30 L60 30 L65 20 L80 20 L95 40 L80 45 L80 90 L20 90 L20 45 L5 40 Z" />
-    </svg>
-  );
-  if (type === 'hoodie') return (
-    <svg viewBox="0 0 100 100" className="w-full h-full fill-white/10 stroke-white/20" strokeWidth="2">
-      <path d="M30 30 Q50 10 70 30 L85 35 L75 85 L25 85 L15 35 Z" />
-      <rect x="40" y="65" width="20" height="10" rx="2" className="fill-white/5" />
-    </svg>
-  );
+function DesignStudio({ product, onBack }: any) {
+  const [logo, setLogo] = useState<string | null>(null);
+  const [logoScale, setLogoScale] = useState(30);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUpload = (e: any) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setLogo(ev.target?.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
-    <svg viewBox="0 0 100 100" className="w-full h-full fill-white/10 stroke-white/20" strokeWidth="2">
-      <path d="M35 15 L65 15 L70 85 Q70 90 65 90 L35 90 Q30 90 30 85 Z" />
-      <rect x="42" y="10" width="16" height="5" rx="1" className="fill-white/20" />
-    </svg>
+    <motion.div key="studio" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col lg:flex-row h-screen bg-[#05070a]">
+      {/* 1. DESIGN CANVAS (CENTER) */}
+      <div className="flex-1 flex items-center justify-center p-16 relative overflow-hidden bg-slate-950">
+        <button onClick={onBack} className="absolute top-12 left-12 text-slate-600 hover:text-white font-black uppercase tracking-widest text-[10px] z-[100]">← BACK TO HUB</button>
+        
+        <div className="relative w-full max-w-2xl aspect-square bg-[#0d1324] rounded-[80px] border border-white/5 overflow-hidden flex items-center justify-center shadow-2xl">
+          {/* BASE PRODUCT - High Priority Visibility */}
+          <img src={product.image} className="w-full h-full object-contain relative z-10 pointer-events-none" alt="base" />
+          
+          {/* THE LOGO - Forced Z-Index [999] ensuring visibility */}
+          <AnimatePresence>
+            {logo && (
+              <motion.div 
+                drag 
+                dragMomentum={false}
+                className="absolute z-[999] cursor-grab active:cursor-grabbing pointer-events-auto" 
+                style={{ width: `${logoScale}%`, top: '40%', left: '35%' }}
+              >
+                <img src={logo} alt="Branding" className="w-full h-auto drop-shadow-[0_20px_60px_rgba(0,0,0,0.9)]" />
+                <div className="absolute -inset-4 border-2 border-cyan-500 border-dashed rounded-2xl opacity-40 pointer-events-none" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {!logo && <div className="absolute z-0 font-black text-white/5 text-[120px] uppercase tracking-tighter leading-none select-none italic">JOBR</div>}
+        </div>
+      </div>
+
+      {/* 2. STUDIO CONTROLS (SIDEBAR) */}
+      <div className="w-full lg:w-[480px] bg-[#070b14] border-l border-white/5 p-16 flex flex-col gap-12 z-[1000]">
+        <div>
+          <h2 className="text-4xl font-black text-white italic mb-3 tracking-tighter">{product.name}</h2>
+          <p className="text-cyan-500 text-[10px] font-black uppercase tracking-[0.4em]">Design Studio v1.02</p>
+        </div>
+
+        <div className="space-y-6">
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-600">1. Upload Asset</h3>
+          <button 
+            onClick={() => fileInputRef.current?.click()} 
+            className="w-full py-20 border-2 border-dashed border-white/5 rounded-[48px] hover:border-cyan-500/40 hover:bg-cyan-500/5 transition-all group flex flex-col items-center gap-5"
+          >
+            <div className="p-5 bg-white/5 rounded-full group-hover:scale-110 transition-transform">
+              <Upload className="text-slate-400 group-hover:text-cyan-400" size={28} />
+            </div>
+            <span className="text-[10px] font-black text-slate-500 uppercase group-hover:text-slate-200">
+               {logo ? "Replace branding asset" : "Choose Image (PNG/JPG/SVG)"}
+            </span>
+            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
+          </button>
+        </div>
+
+        {logo && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+            <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-500">
+              <span>2. Asset Dimensions</span>
+              <span className="text-white font-mono">{logoScale}%</span>
+            </div>
+            <input 
+               type="range" min="10" max="85" value={logoScale} 
+               onChange={(e) => setLogoScale(Number(e.target.value))} 
+               className="w-full accent-cyan-500 cursor-pointer h-1.5 rounded-full" 
+            />
+          </motion.div>
+        )}
+
+        <div className="mt-auto pt-10 border-t border-white/5">
+          <div className="flex justify-between items-end mb-10">
+            <div>
+              <p className="text-[10px] font-black uppercase text-slate-600 mb-2">Est. Unit Price</p>
+              <p className="text-4xl font-black text-white italic tracking-tighter">₹{product.price}</p>
+            </div>
+          </div>
+          <button className="w-full py-6 bg-white text-black font-black rounded-3xl text-[12px] uppercase tracking-[0.2em] shadow-2xl hover:bg-cyan-500 hover:text-white transition-all">
+            GENERATE MANUFACTURING QUOTE
+          </button>
+        </div>
+      </div>
+    </motion.div>
   );
 }
