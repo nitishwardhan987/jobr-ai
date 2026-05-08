@@ -1,209 +1,194 @@
 'use client';
-import { useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingBag, Zap, Palette, ChevronLeft, Upload, Move, Box } from "lucide-react";
 
-// ──────────────────────────────────────────────
-// EXACT FILENAME MAPPING
-// ──────────────────────────────────────────────
-const CATEGORIES = ["All", "Apparel", "Bottoms", "Accessories", "Stationery"];
+// ─────────────────────────────────────────────────────────────────────────────
+// src/app/merch/page.tsx
+//
+// Jobr Merch Store — full catalogue + design studio
+// ─────────────────────────────────────────────────────────────────────────────
 
-const PRODUCTS = [
-  {
-    id: "optic-wash-tee",
-    name: "Optic Wash Oversize Tee",
-    category: "Apparel",
-    price: 479,
-    // UPDATED to .png per your correction
-    image: "/16639907304364plus-size-tee_website-final.png", 
-  },
-  {
-    id: "premium-hoodie",
-    name: "Classic Pullover Hoodie",
-    category: "Apparel",
-    price: 999,
-    image: "/16327587616151ebe9ad1a0jackets-and-pullovers.svg", 
-  },
-  {
-    id: "tech-joggers",
-    name: "Tech Fleece Joggers",
-    category: "Bottoms",
-    price: 899,
-    image: "/16556998541354Jogger.png",
-  },
-  {
-    id: "cohort-cap",
-    name: "Premium Snapback Cap",
-    category: "Accessories",
-    price: 345,
-    image: "/1633358660615b13444dfd21630042360612878f8986d016297183166123.jpg",
-  },
-  {
-    id: "neural-mug",
-    name: "Ceramic Coffee Mug",
-    category: "Accessories",
-    price: 249,
-    image: "/16327587376151ebd1a7a43coffee-mug-black.svg",
-  },
-  {
-    id: "stationery-kit",
-    name: "Cohort Stationery Set",
-    category: "Stationery",
-    price: 159,
-    image: "/16327587236151ebc3d5961stationery.svg",
-  }
+import { useState } from 'react';
+import MerchCard from '@/components/merch/MerchCard';
+import DesignStudio from '@/components/merch/DesignStudio';
+import {
+  MERCH_PRODUCTS,
+  MerchProduct,
+  ProductCategory,
+  CATEGORY_LABELS,
+  getProductsByCategory,
+} from '@/lib/merch-products';
+
+type View = 'catalogue' | 'studio';
+type CatFilter = ProductCategory | 'all';
+
+const TABS: { key: CatFilter; label: string }[] = [
+  { key: 'all',        label: 'All Products' },
+  { key: 'apparel',    label: 'Apparel' },
+  { key: 'jackets',    label: 'Jackets & Hoodies' },
+  { key: 'accessories',label: 'Accessories' },
+  { key: 'misc',       label: 'Mugs & More' },
 ];
 
-export default function JobrMerchStore() {
-  const [view, setView] = useState<'catalog' | 'studio'>('catalog');
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+export default function MerchPage() {
+  const [view,            setView]            = useState<View>('catalogue');
+  const [activeCategory,  setActiveCategory]  = useState<CatFilter>('all');
+  const [selectedProduct, setSelectedProduct] = useState<MerchProduct | null>(null);
 
-  const filteredProducts = PRODUCTS.filter(p => activeCategory === "All" || p.category === activeCategory);
+  const visibleProducts = getProductsByCategory(activeCategory);
 
-  return (
-    <div className="bg-[#0a0f1e] min-h-screen text-slate-200 selection:bg-cyan-500/30">
-      <AnimatePresence mode="wait">
-        {view === 'catalog' ? (
-          <motion.div key="catalog" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="max-w-7xl mx-auto py-20 px-8">
-            <header className="mb-16">
-              <span className="text-cyan-400 text-[10px] font-black uppercase tracking-[0.3em] mb-4 block underline underline-offset-8 decoration-cyan-500/30">Merch Ecosystem v1.0</span>
-              <h1 className="text-6xl font-black italic text-white tracking-tighter mb-10">Product Catalog</h1>
-              
-              <div className="flex flex-wrap gap-4">
-                {CATEGORIES.map(cat => (
-                  <button 
-                    key={cat} onClick={() => setActiveCategory(cat)}
-                    className={`px-10 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border ${activeCategory === cat ? 'bg-white text-black border-white shadow-xl shadow-white/10' : 'bg-white/5 text-slate-500 border-white/5 hover:text-slate-300'}`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </header>
+  function handleCustomize(product: MerchProduct) {
+    setSelectedProduct(product);
+    setView('studio');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
-              {filteredProducts.map(p => (
-                <div key={p.id} className="bg-slate-900/40 border border-white/5 rounded-[56px] p-10 hover:border-cyan-500/30 transition-all group shadow-2xl">
-                  <div className="aspect-square mb-8 overflow-hidden rounded-[40px] bg-slate-950 flex items-center justify-center relative">
-                    <img src={p.image} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-1000" alt={p.name} />
-                  </div>
-                  <div className="space-y-6">
-                    <div className="flex justify-between items-start">
-                      <h3 className="text-2xl font-black text-white italic tracking-tighter leading-tight max-w-[180px]">{p.name}</h3>
-                      <p className="text-2xl font-black text-white italic">₹{p.price}</p>
-                    </div>
-                    <button 
-                      onClick={() => { setSelectedProduct(p); setView('studio'); }}
-                      className="w-full bg-cyan-600 text-white py-5 rounded-3xl text-[11px] font-black uppercase tracking-widest hover:bg-cyan-500 transition-all shadow-xl shadow-cyan-900/20"
-                    >
-                      CUSTOMIZE DESIGN
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        ) : (
-          <DesignStudio product={selectedProduct} onBack={() => setView('catalog')} />
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function DesignStudio({ product, onBack }: any) {
-  const [logo, setLogo] = useState<string | null>(null);
-  const [logoScale, setLogoScale] = useState(30);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleUpload = (e: any) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => setLogo(ev.target?.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
+  function handleBackToCatalogue() {
+    setView('catalogue');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   return (
-    <motion.div key="studio" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col lg:flex-row h-screen bg-[#05070a]">
-      {/* 1. DESIGN CANVAS (CENTER) */}
-      <div className="flex-1 flex items-center justify-center p-16 relative overflow-hidden bg-slate-950">
-        <button onClick={onBack} className="absolute top-12 left-12 text-slate-600 hover:text-white font-black uppercase tracking-widest text-[10px] z-[100]">← BACK TO HUB</button>
-        
-        <div className="relative w-full max-w-2xl aspect-square bg-[#0d1324] rounded-[80px] border border-white/5 overflow-hidden flex items-center justify-center shadow-2xl">
-          {/* BASE PRODUCT - High Priority Visibility */}
-          <img src={product.image} className="w-full h-full object-contain relative z-10 pointer-events-none" alt="base" />
-          
-          {/* THE LOGO - Forced Z-Index [999] ensuring visibility */}
-          <AnimatePresence>
-            {logo && (
-              <motion.div 
-                drag 
-                dragMomentum={false}
-                className="absolute z-[999] cursor-grab active:cursor-grabbing pointer-events-auto" 
-                style={{ width: `${logoScale}%`, top: '40%', left: '35%' }}
-              >
-                <img src={logo} alt="Branding" className="w-full h-auto drop-shadow-[0_20px_60px_rgba(0,0,0,0.9)]" />
-                <div className="absolute -inset-4 border-2 border-cyan-500 border-dashed rounded-2xl opacity-40 pointer-events-none" />
-              </motion.div>
-            )}
-          </AnimatePresence>
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
 
-          {!logo && <div className="absolute z-0 font-black text-white/5 text-[120px] uppercase tracking-tighter leading-none select-none italic">JOBR</div>}
-        </div>
-      </div>
-
-      {/* 2. STUDIO CONTROLS (SIDEBAR) */}
-      <div className="w-full lg:w-[480px] bg-[#070b14] border-l border-white/5 p-16 flex flex-col gap-12 z-[1000]">
-        <div>
-          <h2 className="text-4xl font-black text-white italic mb-3 tracking-tighter">{product.name}</h2>
-          <p className="text-cyan-500 text-[10px] font-black uppercase tracking-[0.4em]">Design Studio v1.02</p>
-        </div>
-
-        <div className="space-y-6">
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-600">1. Upload Asset</h3>
-          <button 
-            onClick={() => fileInputRef.current?.click()} 
-            className="w-full py-20 border-2 border-dashed border-white/5 rounded-[48px] hover:border-cyan-500/40 hover:bg-cyan-500/5 transition-all group flex flex-col items-center gap-5"
-          >
-            <div className="p-5 bg-white/5 rounded-full group-hover:scale-110 transition-transform">
-              <Upload className="text-slate-400 group-hover:text-cyan-400" size={28} />
-            </div>
-            <span className="text-[10px] font-black text-slate-500 uppercase group-hover:text-slate-200">
-               {logo ? "Replace branding asset" : "Choose Image (PNG/JPG/SVG)"}
+      {/* ── NAV — matches your existing site nav ── */}
+      <nav className="sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-sm border-b border-white/[0.06]">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 flex items-center justify-between h-14">
+          <a href="/" className="flex items-center gap-2 text-[15px] font-bold tracking-tight">
+            <span className="w-7 h-7 rounded-md bg-[#e8ff47] text-black flex items-center justify-center text-xs font-black">
+              J
             </span>
-            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} />
-          </button>
+            <span className="text-white/90">Jobr.co.in</span>
+          </a>
+          <div className="flex items-center gap-4">
+            <a
+              href="/merch"
+              className="text-[13px] text-[#e8ff47] font-mono tracking-wider"
+            >
+              Merch Store
+            </a>
+            <a
+              href="/auth"
+              className="text-[13px] text-white/50 hover:text-white/80 transition-colors font-mono tracking-wider"
+            >
+              Start Optimizing
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      {/* ── PAGE HEADER ── */}
+      <div className="max-w-6xl mx-auto px-4 md:px-6 pt-10 pb-4">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-mono tracking-[0.15em] text-[#e8ff47] mb-2">
+              MERCH ECOSYSTEM v1.0
+            </p>
+            <h1 className="text-3xl md:text-4xl font-bold text-white/95 tracking-tight">
+              {view === 'catalogue' ? 'Product Catalogue' : 'Design Studio'}
+            </h1>
+            {view === 'catalogue' && (
+              <p className="text-[14px] text-white/40 mt-2">
+                {MERCH_PRODUCTS.length} products · Custom prints · Bulk from 10 units
+              </p>
+            )}
+          </div>
+          {/* View switch pills */}
+          <div className="flex rounded-xl border border-white/[0.08] overflow-hidden self-start md:self-auto">
+            <button
+              onClick={() => setView('catalogue')}
+              className={`px-4 py-2 text-[13px] font-mono tracking-wider transition-all ${
+                view === 'catalogue'
+                  ? 'bg-[#e8ff47] text-black font-bold'
+                  : 'text-white/40 hover:text-white/70'
+              }`}
+            >
+              Catalogue
+            </button>
+            <button
+              onClick={() => {
+                if (selectedProduct) setView('studio');
+              }}
+              disabled={!selectedProduct}
+              className={`px-4 py-2 text-[13px] font-mono tracking-wider transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
+                view === 'studio'
+                  ? 'bg-[#e8ff47] text-black font-bold'
+                  : 'text-white/40 hover:text-white/70'
+              }`}
+              title={!selectedProduct ? 'Select a product first' : 'Open Design Studio'}
+            >
+              Design Studio
+            </button>
+          </div>
         </div>
 
-        {logo && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
-            <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-500">
-              <span>2. Asset Dimensions</span>
-              <span className="text-white font-mono">{logoScale}%</span>
-            </div>
-            <input 
-               type="range" min="10" max="85" value={logoScale} 
-               onChange={(e) => setLogoScale(Number(e.target.value))} 
-               className="w-full accent-cyan-500 cursor-pointer h-1.5 rounded-full" 
-            />
-          </motion.div>
+        {/* ── Category tabs — only in catalogue view ── */}
+        {view === 'catalogue' && (
+          <div className="flex gap-0 mt-6 border-b border-white/[0.07] overflow-x-auto scrollbar-none">
+            {TABS.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveCategory(tab.key)}
+                className={`
+                  px-4 py-2.5 text-[13px] whitespace-nowrap border-b-2 transition-all
+                  ${activeCategory === tab.key
+                    ? 'border-[#e8ff47] text-[#e8ff47]'
+                    : 'border-transparent text-white/40 hover:text-white/70'
+                  }
+                `}
+              >
+                {tab.label}
+                {tab.key !== 'all' && (
+                  <span className="ml-1.5 text-[10px] font-mono text-white/20">
+                    {getProductsByCategory(tab.key).length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── MAIN CONTENT ── */}
+      <div className="max-w-6xl mx-auto px-4 md:px-6 pb-20">
+
+        {/* Catalogue grid */}
+        {view === 'catalogue' && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mt-5">
+            {visibleProducts.map((product) => (
+              <MerchCard
+                key={product.id}
+                product={product}
+                isSelected={selectedProduct?.id === product.id}
+                onSelect={setSelectedProduct}
+                onCustomize={handleCustomize}
+              />
+            ))}
+          </div>
         )}
 
-        <div className="mt-auto pt-10 border-t border-white/5">
-          <div className="flex justify-between items-end mb-10">
-            <div>
-              <p className="text-[10px] font-black uppercase text-slate-600 mb-2">Est. Unit Price</p>
-              <p className="text-4xl font-black text-white italic tracking-tighter">₹{product.price}</p>
-            </div>
+        {/* Design Studio */}
+        {view === 'studio' && selectedProduct && (
+          <div className="mt-5 rounded-2xl border border-white/[0.07] bg-[#111111] overflow-hidden">
+            <DesignStudio
+              product={selectedProduct}
+              onBack={handleBackToCatalogue}
+            />
           </div>
-          <button className="w-full py-6 bg-white text-black font-black rounded-3xl text-[12px] uppercase tracking-[0.2em] shadow-2xl hover:bg-cyan-500 hover:text-white transition-all">
-            GENERATE MANUFACTURING QUOTE
-          </button>
-        </div>
+        )}
       </div>
-    </motion.div>
+
+      {/* ── FOOTER ── */}
+      <footer className="border-t border-white/[0.06] py-8">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="text-[12px] font-mono text-white/30 tracking-wider">
+            JOBR.CO.IN — BUILT FOR THE BANGALORE TECH ELITE
+          </div>
+          <div className="flex gap-6 text-[11px] text-white/20 font-mono">
+            <span>Privacy First</span>
+            <span>Google XYZ Powered</span>
+            <span>2026</span>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }
