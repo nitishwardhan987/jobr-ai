@@ -6,6 +6,8 @@
   --foreground-rgb: 15, 23, 42;
   --background-start-rgb: 248, 250, 252;
   --background-end-rgb: 255, 255, 255;
+  --accent: #e8ff47;
+  --card-bg: #161616;
 }
 
 body {

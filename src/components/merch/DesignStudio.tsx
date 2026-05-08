@@ -1,30 +1,9 @@
 'use client';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// src/components/merch/DesignStudio.tsx
-//
-// Full design studio: live preview, text, font, placement, colour, size, qty
-// Order flow → WhatsApp deep-link
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
-import {
-  MerchProduct,
-  ColorOption,
-  getUnitPrice,
-  buildWhatsAppUrl,
-} from '@/lib/merch-products';
+import { MerchProduct, ColorOption, getUnitPrice, buildWhatsAppUrl } from '@/lib/merch-products';
 
-const PLACEMENTS = [
-  'Front Centre',
-  'Front Left',
-  'Back Centre',
-  'Left Sleeve',
-  'Right Sleeve',
-  'Collar',
-];
-
+const PLACEMENTS = ['Front Centre', 'Front Left', 'Back Centre', 'Left Sleeve', 'Right Sleeve', 'Collar'];
 const FONTS = [
   { label: 'MONO',   value: "'Space Mono', monospace" },
   { label: 'Sans',   value: "'DM Sans', sans-serif" },
@@ -32,10 +11,7 @@ const FONTS = [
   { label: 'Script', value: 'cursive' },
 ];
 
-interface Props {
-  product: MerchProduct;
-  onBack: () => void;
-}
+interface Props { product: MerchProduct; onBack: () => void; }
 
 export default function DesignStudio({ product, onBack }: Props) {
   const [selectedColor, setSelectedColor] = useState<ColorOption>(product.colors[0]);
@@ -45,329 +21,187 @@ export default function DesignStudio({ product, onBack }: Props) {
   const [designText,    setDesignText]    = useState('');
   const [qty,           setQty]           = useState(1);
   const [ordered,       setOrdered]       = useState(false);
-
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imgRef    = useRef<HTMLImageElement | null>(null);
 
-  const unitPrice = getUnitPrice(product, qty);
-  const totalPrice = unitPrice * qty;
+  const unitPrice    = getUnitPrice(product, qty);
+  const totalPrice   = unitPrice * qty;
   const bulkDiscount = qty >= 10;
 
-  // ── Draw preview canvas ──────────────────────────────────────────────────
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
-    const W = canvas.width;
-    const H = canvas.height;
-
-    // Background — selected colour
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = selectedColor.hex;
-    ctx.roundRect(0, 0, W, H, 16);
-    ctx.fill();
+    ctx.fillRect(0, 0, W, H);
 
-    // Draw product image if available
+    const r = parseInt(selectedColor.hex.slice(1,3),16);
+    const g = parseInt(selectedColor.hex.slice(3,5),16);
+    const b = parseInt(selectedColor.hex.slice(5,7),16);
+    const isDark = r + g + b < 380;
+
     const drawText = () => {
-      if (!designText) return;
+      if (!designText.trim()) return;
       ctx.save();
-      const isDark =
-        parseInt(selectedColor.hex.slice(1, 3), 16) +
-        parseInt(selectedColor.hex.slice(3, 5), 16) +
-        parseInt(selectedColor.hex.slice(5, 7), 16) < 380;
       ctx.fillStyle = isDark ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.85)';
-      ctx.font = `700 18px ${selectedFont}`;
+      ctx.font = `700 17px ${selectedFont}`;
       ctx.textAlign = 'center';
-
-      // Placement Y offset
-      const yMap: Record<string, number> = {
-        'Front Centre': H * 0.72,
-        'Front Left':   H * 0.72,
-        'Back Centre':  H * 0.72,
-        'Left Sleeve':  H * 0.55,
-        'Right Sleeve': H * 0.55,
-        'Collar':       H * 0.28,
-      };
-      const xMap: Record<string, number> = {
-        'Front Centre': W / 2,
-        'Front Left':   W * 0.3,
-        'Back Centre':  W / 2,
-        'Left Sleeve':  W * 0.25,
-        'Right Sleeve': W * 0.75,
-        'Collar':       W / 2,
-      };
-      ctx.fillText(designText, xMap[placement] ?? W / 2, yMap[placement] ?? H * 0.72, W - 32);
+      const xMap: Record<string,number> = { 'Front Centre': W/2, 'Front Left': W*0.28, 'Back Centre': W/2, 'Left Sleeve': W*0.22, 'Right Sleeve': W*0.78, 'Collar': W/2 };
+      const yMap: Record<string,number> = { 'Front Centre': H*0.74, 'Front Left': H*0.74, 'Back Centre': H*0.74, 'Left Sleeve': H*0.56, 'Right Sleeve': H*0.56, 'Collar': H*0.26 };
+      ctx.fillText(designText, xMap[placement]??W/2, yMap[placement]??H*0.74, W-32);
       ctx.restore();
     };
 
-    if (product.image && product.image.endsWith('.png') || product.image?.endsWith('.jpg')) {
+    const drawEmoji = () => {
+      ctx.font = `${W*0.42}px serif`;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = isDark ? 'rgba(255,255,255,0.11)' : 'rgba(0,0,0,0.09)';
+      ctx.fillText(product.fallbackEmoji, W/2, H*0.58);
+      drawText();
+    };
+
+    if (product.image && (product.image.endsWith('.png') || product.image.endsWith('.jpg') || product.image.endsWith('.svg'))) {
       const img = new window.Image();
       img.crossOrigin = 'anonymous';
       img.src = product.image;
       img.onload = () => {
-        // Draw image centered, object-contain style
         const aspect = img.width / img.height;
-        let drawW = W - 40;
-        let drawH = drawW / aspect;
-        if (drawH > H - 40) { drawH = H - 40; drawW = drawH * aspect; }
-        const drawX = (W - drawW) / 2;
-        const drawY = (H - drawH) / 2;
-        ctx.drawImage(img, drawX, drawY, drawW, drawH);
+        let dW = W-48, dH = dW/aspect;
+        if (dH > H-48) { dH = H-48; dW = dH*aspect; }
+        ctx.drawImage(img, (W-dW)/2, (H-dH)/2, dW, dH);
         drawText();
       };
-      img.onerror = () => {
-        // fallback: draw emoji
-        ctx.font = `${W * 0.4}px serif`;
-        ctx.textAlign = 'center';
-        ctx.fillStyle = 'rgba(255,255,255,0.15)';
-        ctx.fillText(product.fallbackEmoji, W / 2, H * 0.55);
-        drawText();
-      };
+      img.onerror = drawEmoji;
     } else {
-      // No image — big faint emoji
-      ctx.font = `${W * 0.42}px serif`;
-      ctx.textAlign = 'center';
-      ctx.fillStyle =
-        parseInt(selectedColor.hex.slice(1, 3), 16) +
-        parseInt(selectedColor.hex.slice(3, 5), 16) +
-        parseInt(selectedColor.hex.slice(5, 7), 16) < 380
-          ? 'rgba(255,255,255,0.12)'
-          : 'rgba(0,0,0,0.1)';
-      ctx.fillText(product.fallbackEmoji, W / 2, H * 0.58);
-      drawText();
+      drawEmoji();
     }
   }, [selectedColor, designText, selectedFont, placement, product]);
 
-  // ── Handlers ─────────────────────────────────────────────────────────────
   function handleOrder() {
-    const url = buildWhatsAppUrl(product, selectedColor, selectedSize, qty, designText, placement);
-    window.open(url, '_blank');
+    window.open(buildWhatsAppUrl(product, selectedColor, selectedSize, qty, designText, placement), '_blank');
     setOrdered(true);
   }
 
-  function changeQty(delta: number) {
-    setQty((q) => Math.max(1, q + delta));
-  }
-
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-5 p-5 md:p-6">
-      {/* Breadcrumb */}
       <div className="flex items-center gap-2">
-        <button
-          onClick={onBack}
-          className="text-[11px] font-mono tracking-wider text-white/30 hover:text-white/70 transition-colors"
-        >
-          ← CATALOGUE
-        </button>
-        <span className="text-white/20 text-[11px]">/</span>
-        <span className="text-[11px] font-mono tracking-wider text-[#e8ff47]">
-          DESIGN STUDIO
-        </span>
-        <span className="text-white/20 text-[11px]">/</span>
-        <span className="text-[11px] font-mono tracking-wider text-white/50 uppercase">
-          {product.name}
-        </span>
+        <button onClick={onBack} className="text-[11px] font-mono tracking-wider transition-colors" style={{ color: 'rgba(255,255,255,0.3)' }}>← CATALOGUE</button>
+        <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '11px' }}>/</span>
+        <span className="text-[11px] font-mono tracking-wider" style={{ color: 'var(--accent, #e8ff47)' }}>DESIGN STUDIO</span>
+        <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '11px' }}>/</span>
+        <span className="text-[11px] font-mono tracking-wider uppercase" style={{ color: 'rgba(255,255,255,0.45)' }}>{product.name}</span>
       </div>
 
-      {/* Main split */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-        {/* ── LEFT: Preview ── */}
-        <div className="flex flex-col gap-3">
-          <div
-            className="rounded-xl border border-white/[0.07] bg-[#161616] p-5 flex flex-col items-center"
-          >
-            <canvas
-              ref={canvasRef}
-              width={320}
-              height={320}
-              className="rounded-xl w-full max-w-[320px]"
-              style={{ imageRendering: 'crisp-edges' }}
-            />
-            <div className="mt-4 text-center">
-              <div className="text-[15px] font-medium text-white/90">{product.name}</div>
-              <div className="text-[11px] text-white/40 mt-0.5">{product.subtitle}</div>
-              <div className="mt-2 flex items-baseline gap-1 justify-center">
-                <span className="text-[22px] font-mono text-[#e8ff47]">
-                  ₹{unitPrice.toLocaleString('en-IN')}
-                </span>
-                <span className="text-[12px] text-white/30 font-mono">per unit</span>
-              </div>
-              {bulkDiscount && (
-                <div className="mt-1 text-[11px] font-mono text-[#e8ff47]/70">
-                  10% bulk discount applied ✓
-                </div>
-              )}
+        {/* Preview */}
+        <div className="rounded-xl p-5 flex flex-col items-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <canvas ref={canvasRef} width={320} height={320} className="rounded-xl w-full max-w-[320px]" />
+          <div className="mt-4 text-center">
+            <div className="text-[15px] font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>{product.name}</div>
+            <div className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{product.subtitle}</div>
+            <div className="mt-2 flex items-baseline gap-1 justify-center">
+              <span className="text-[22px] font-mono" style={{ color: 'var(--accent, #e8ff47)' }}>₹{unitPrice.toLocaleString('en-IN')}</span>
+              <span className="text-[12px] font-mono" style={{ color: 'rgba(255,255,255,0.3)' }}>per unit</span>
             </div>
-
-            {/* Color swatches */}
-            <div className="mt-4 flex gap-2 flex-wrap justify-center">
-              {product.colors.map((c) => (
-                <button
-                  key={c.hex}
-                  title={c.name}
-                  onClick={() => setSelectedColor(c)}
-                  className="w-6 h-6 rounded-full transition-transform duration-150 hover:scale-110"
-                  style={{
-                    background: c.hex,
-                    outline:
-                      selectedColor.hex === c.hex
-                        ? '2px solid #e8ff47'
-                        : '2px solid transparent',
-                    outlineOffset: '2px',
-                  }}
-                />
-              ))}
-            </div>
-            <div className="mt-1 text-[11px] text-white/30">{selectedColor.name}</div>
+            {bulkDiscount && <div className="mt-1 text-[11px] font-mono" style={{ color: 'var(--accent, #e8ff47)', opacity: 0.75 }}>10% bulk discount applied ✓</div>}
           </div>
+          <div className="mt-4 flex gap-2 flex-wrap justify-center">
+            {product.colors.map((c) => (
+              <button key={c.hex} title={c.name} onClick={() => setSelectedColor(c)} className="w-6 h-6 rounded-full transition-transform duration-150 hover:scale-110"
+                style={{ background: c.hex, outline: selectedColor.hex===c.hex ? '2px solid var(--accent, #e8ff47)' : '2px solid transparent', outlineOffset: '2px' }} />
+            ))}
+          </div>
+          <div className="mt-1 text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>{selectedColor.name}</div>
         </div>
 
-        {/* ── RIGHT: Controls ── */}
+        {/* Controls */}
         <div className="flex flex-col gap-3">
-
-          {/* Design text */}
-          <ControlCard label="Design Text">
-            <input
-              type="text"
-              value={designText}
-              onChange={(e) => setDesignText(e.target.value)}
-              placeholder="e.g. Jobr Bangalore 2026"
-              maxLength={40}
-              className="
-                w-full bg-[#1f1f1f] border border-white/[0.08] rounded-lg
-                px-3 py-2 text-[13px] text-white/90 placeholder-white/20
-                focus:outline-none focus:border-[#e8ff47] transition-colors
-              "
+          <CtrlCard label="Design Text">
+            <input type="text" value={designText} onChange={(e) => setDesignText(e.target.value)}
+              placeholder="e.g. Jobr Bangalore 2026" maxLength={40}
+              className="w-full rounded-lg px-3 py-2 text-[13px] outline-none transition-colors"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.9)' }}
+              onFocus={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = 'var(--accent, #e8ff47)'; }}
+              onBlur={(e)  => { (e.currentTarget as HTMLInputElement).style.borderColor = 'rgba(255,255,255,0.1)'; }}
             />
-            {/* Font picker */}
             <div className="grid grid-cols-4 gap-1.5 mt-2">
               {FONTS.map((f) => (
-                <button
-                  key={f.value}
-                  onClick={() => setSelectedFont(f.value)}
-                  className={`
-                    py-1.5 rounded-md text-[12px] border transition-all
-                    ${selectedFont === f.value
-                      ? 'border-[#e8ff47] text-[#e8ff47] bg-[#e8ff47]/10'
-                      : 'border-white/[0.08] text-white/40 hover:border-white/20'
-                    }
-                  `}
-                  style={{ fontFamily: f.value }}
-                >
+                <button key={f.value} onClick={() => setSelectedFont(f.value)}
+                  className="py-1.5 rounded-md text-[12px] transition-all"
+                  style={{ fontFamily: f.value,
+                    background: selectedFont===f.value ? 'rgba(232,255,71,0.1)' : 'rgba(255,255,255,0.04)',
+                    border:     selectedFont===f.value ? '1px solid var(--accent, #e8ff47)' : '1px solid rgba(255,255,255,0.08)',
+                    color:      selectedFont===f.value ? 'var(--accent, #e8ff47)' : 'rgba(255,255,255,0.4)' }}>
                   {f.label}
                 </button>
               ))}
             </div>
-          </ControlCard>
+          </CtrlCard>
 
-          {/* Placement */}
-          <ControlCard label="Print Placement">
+          <CtrlCard label="Print Placement">
             <div className="grid grid-cols-3 gap-1.5">
               {PLACEMENTS.map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPlacement(p)}
-                  className={`
-                    py-1.5 px-1 rounded-md text-[11px] border transition-all text-center
-                    ${placement === p
-                      ? 'border-[#e8ff47] text-[#e8ff47] bg-[#e8ff47]/10'
-                      : 'border-white/[0.08] text-white/40 hover:border-white/20'
-                    }
-                  `}
-                >
+                <button key={p} onClick={() => setPlacement(p)} className="py-1.5 px-1 rounded-md text-[11px] transition-all text-center"
+                  style={{ background: placement===p ? 'rgba(232,255,71,0.1)' : 'rgba(255,255,255,0.04)',
+                    border: placement===p ? '1px solid var(--accent, #e8ff47)' : '1px solid rgba(255,255,255,0.08)',
+                    color:  placement===p ? 'var(--accent, #e8ff47)' : 'rgba(255,255,255,0.4)' }}>
                   {p}
                 </button>
               ))}
             </div>
-          </ControlCard>
+          </CtrlCard>
 
-          {/* Size — only show if product has sizes */}
           {product.sizes.length > 0 && (
-            <ControlCard label="Size">
+            <CtrlCard label="Size">
               <div className="flex gap-1.5 flex-wrap">
                 {product.sizes.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setSelectedSize(s)}
-                    className={`
-                      px-3 py-1.5 rounded-md text-[12px] font-mono border transition-all
-                      ${selectedSize === s
-                        ? 'bg-[#e8ff47] border-[#e8ff47] text-black font-bold'
-                        : 'border-white/[0.08] text-white/40 hover:border-white/20'
-                      }
-                    `}
-                  >
+                  <button key={s} onClick={() => setSelectedSize(s)} className="px-3 py-1.5 rounded-md text-[12px] font-mono transition-all"
+                    style={selectedSize===s
+                      ? { background: 'var(--accent, #e8ff47)', border: '1px solid var(--accent, #e8ff47)', color: '#000', fontWeight: 700 }
+                      : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}>
                     {s}
                   </button>
                 ))}
               </div>
-            </ControlCard>
+            </CtrlCard>
           )}
 
-          {/* Quantity */}
-          <ControlCard label="Quantity">
+          <CtrlCard label="Quantity">
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => changeQty(-1)}
-                className="w-8 h-8 rounded-lg bg-[#1f1f1f] border border-white/[0.08] text-white/70 text-lg flex items-center justify-center hover:bg-white/10 transition-colors"
-              >
-                −
-              </button>
-              <span className="font-mono text-[18px] text-white/90 min-w-[32px] text-center">
-                {qty}
-              </span>
-              <button
-                onClick={() => changeQty(1)}
-                className="w-8 h-8 rounded-lg bg-[#1f1f1f] border border-white/[0.08] text-white/70 text-lg flex items-center justify-center hover:bg-white/10 transition-colors"
-              >
-                +
-              </button>
-              <span className="text-[11px] text-white/30 font-mono ml-1">
-                {qty >= 10 ? '🎉 Bulk rate!' : `${10 - qty} more for bulk`}
+              <button onClick={() => setQty(q => Math.max(1,q-1))} className="w-8 h-8 rounded-lg flex items-center justify-center text-lg transition-colors"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}>−</button>
+              <span className="font-mono text-[18px] min-w-[32px] text-center" style={{ color: 'rgba(255,255,255,0.9)' }}>{qty}</span>
+              <button onClick={() => setQty(q => q+1)} className="w-8 h-8 rounded-lg flex items-center justify-center text-lg transition-colors"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}>+</button>
+              <span className="text-[11px] font-mono ml-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                {qty >= 10 ? '🎉 Bulk rate!' : `${10-qty} more for bulk`}
               </span>
             </div>
-          </ControlCard>
+          </CtrlCard>
 
-          {/* Order summary */}
-          <div className="rounded-xl border border-white/[0.07] bg-[#161616] p-4 flex flex-col gap-3">
+          <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
             <div className="flex items-center justify-between">
-              <span className="text-[12px] text-white/40 font-mono">TOTAL</span>
-              <span className="text-[20px] font-mono text-white/90">
-                ₹{totalPrice.toLocaleString('en-IN')}
-              </span>
+              <span className="text-[12px] font-mono" style={{ color: 'rgba(255,255,255,0.4)' }}>TOTAL</span>
+              <span className="text-[20px] font-mono" style={{ color: 'rgba(255,255,255,0.9)' }}>₹{totalPrice.toLocaleString('en-IN')}</span>
             </div>
             {bulkDiscount && (
-              <div className="text-[11px] text-[#e8ff47]/70 font-mono">
+              <div className="text-[11px] font-mono" style={{ color: 'var(--accent, #e8ff47)', opacity: 0.75 }}>
                 You save ₹{(product.price * qty - totalPrice).toLocaleString('en-IN')} with bulk pricing
               </div>
             )}
-
-            {/* WhatsApp order button */}
-            <button
-              onClick={handleOrder}
-              className="
-                w-full py-3 rounded-xl font-mono text-[12px] tracking-widest font-bold
-                bg-[#25D366] text-black hover:opacity-90 active:scale-[0.98]
-                transition-all flex items-center justify-center gap-2
-              "
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <button onClick={handleOrder}
+              className="w-full py-3 rounded-xl font-mono text-[12px] tracking-widest font-bold flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+              style={{ background: '#25D366', color: '#000' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
                 <path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.558 4.117 1.534 5.847L0 24l6.335-1.511A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.882a9.875 9.875 0 01-5.022-1.366l-.36-.214-3.742.892.934-3.654-.235-.374A9.857 9.857 0 012.118 12C2.118 6.53 6.53 2.118 12 2.118S21.882 6.53 21.882 12 17.47 21.882 12 21.882z"/>
               </svg>
               ORDER VIA WHATSAPP
             </button>
-
-            {ordered && (
-              <div className="text-[11px] text-[#e8ff47] font-mono text-center">
-                ✓ WhatsApp opened — confirm your order there!
-              </div>
-            )}
-
-            <p className="text-[10px] text-white/20 text-center leading-relaxed">
+            {ordered && <div className="text-[11px] font-mono text-center" style={{ color: 'var(--accent, #e8ff47)' }}>✓ WhatsApp opened — confirm your order there!</div>}
+            <p className="text-[10px] text-center leading-relaxed" style={{ color: 'rgba(255,255,255,0.2)' }}>
               Production 5–7 days · Free delivery above ₹999 · Bulk orders negotiable
             </p>
           </div>
@@ -377,19 +211,10 @@ export default function DesignStudio({ product, onBack }: Props) {
   );
 }
 
-// ── Small helper ─────────────────────────────────────────────────────────────
-function ControlCard({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function CtrlCard({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-white/[0.07] bg-[#161616] p-4">
-      <div className="text-[10px] font-mono tracking-[0.12em] text-white/30 uppercase mb-3">
-        {label}
-      </div>
+    <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+      <div className="text-[10px] font-mono tracking-[0.12em] uppercase mb-3" style={{ color: 'rgba(255,255,255,0.3)' }}>{label}</div>
       {children}
     </div>
   );
