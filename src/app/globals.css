@@ -5,21 +5,23 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  --bg:            #060B18;
-  --bg-card:       #0D1526;
-  --bg-subtle:     #111827;
-  --accent:        #38BDF8;
-  --accent-hover:  #0EA5E9;
-  --accent-dim:    rgba(56,189,248,0.10);
-  --accent-light:  rgba(56,189,248,0.08);
-  --text-1:        #F8FAFC;
+  --bg:            #1C1C2E;
+  --bg-card:       #24243A;
+  --bg-subtle:     #2A2A42;
+  --accent:        #7C3AED;
+  --accent-hover:  #6D28D9;
+  --accent-dim:    rgba(124,58,237,0.15);
+  --accent-light:  rgba(124,58,237,0.10);
+  --accent-2:      #F97316;
+  --accent-2-dim:  rgba(249,115,22,0.12);
+  --text-1:        #F1F0FF;
   --text-2:        #94A3B8;
   --text-3:        #475569;
   --border:        rgba(255,255,255,0.07);
   --border-hover:  rgba(255,255,255,0.14);
-  --border-accent: rgba(56,189,248,0.25);
+  --border-accent: rgba(124,58,237,0.30);
   --success:       #10B981;
-  --warning:       #F59E0B;
+  --warning:       #F97316;
   --danger:        #EF4444;
   --font-sans:     'DM Sans', sans-serif;
   --font-mono:     'Space Mono', monospace;
@@ -27,8 +29,8 @@
   --radius-md:     10px;
   --radius-lg:     16px;
   --radius-xl:     24px;
-  --shadow-sm:     0 1px 4px rgba(0,0,0,0.4);
-  --shadow-md:     0 4px 16px rgba(0,0,0,0.5);
+  --shadow-sm:     0 1px 4px rgba(0,0,0,0.3);
+  --shadow-md:     0 4px 16px rgba(0,0,0,0.4);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -49,36 +51,36 @@ a { color: var(--accent); text-decoration: none; }
   color: #94A3B8; border-radius: 8px; text-decoration: none;
   transition: color 0.15s, background 0.15s; white-space: nowrap;
 }
-.nav-link:hover { color: #F8FAFC; background: rgba(255,255,255,0.06); }
+.nav-link:hover { color: #F1F0FF; background: rgba(255,255,255,0.06); }
 
 .nav-badge {
   font-size: 9px; font-weight: 700; font-family: var(--font-mono);
-  background: rgba(56,189,248,0.12); color: #38BDF8;
+  background: rgba(124,58,237,0.20); color: #A78BFA;
   padding: 2px 5px; border-radius: 99px; letter-spacing: 0.06em;
 }
 
 .cta-btn {
   display: inline-flex; align-items: center;
-  background: #38BDF8; color: #0F172A !important;
+  background: var(--accent); color: #fff !important;
   font-weight: 700; font-size: 13px;
   padding: 8px 18px; border-radius: 8px;
   text-decoration: none; white-space: nowrap;
-  box-shadow: 0 2px 12px rgba(56,189,248,0.25);
+  box-shadow: 0 2px 12px rgba(124,58,237,0.35);
   transition: background 0.15s;
 }
-.cta-btn:hover { background: #0EA5E9; }
+.cta-btn:hover { background: var(--accent-hover); }
 
 .btn-primary {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  background: var(--accent); color: #0F172A;
+  background: var(--accent); color: #fff;
   font-weight: 700; font-size: 14px;
   padding: 10px 22px; border-radius: var(--radius-md);
   border: none; cursor: pointer;
-  box-shadow: 0 2px 12px rgba(56,189,248,0.25);
+  box-shadow: 0 2px 12px rgba(124,58,237,0.30);
   text-decoration: none; white-space: nowrap;
   transition: background 0.15s, transform 0.1s;
 }
-.btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); color: #0F172A; }
+.btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); color: #fff; }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
 .btn-ghost {
@@ -94,8 +96,8 @@ a { color: var(--accent); text-decoration: none; }
 
 .input {
   width: 100%;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.10);
   border-radius: var(--radius-md);
   padding: 10px 14px;
   font-family: var(--font-sans); font-size: 14px;
@@ -113,9 +115,9 @@ a { color: var(--accent); text-decoration: none; }
 }
 
 .badge { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.08em; padding: 3px 8px; border-radius: 99px; text-transform: uppercase; }
-.badge-green  { background: rgba(16,185,129,0.15); color: #10B981; }
-.badge-amber  { background: rgba(245,158,11,0.15);  color: #F59E0B; }
-.badge-blue   { background: rgba(56,189,248,0.12);  color: #38BDF8; }
+.badge-green  { background: rgba(16,185,129,0.15);  color: #34D399; }
+.badge-amber  { background: rgba(249,115,22,0.15);   color: #FB923C; }
+.badge-purple { background: rgba(124,58,237,0.15);   color: #A78BFA; }
 
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(16px); }
