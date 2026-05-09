@@ -1,12 +1,4 @@
 /** @type {import('tailwindcss').Config} */
-// ─────────────────────────────────────────────────────────────────────────────
-// tailwind.config.js — full replacement for your project root
-//
-// Changes from your original:
-//  • Added `scrollbar-none` utility for hiding scrollbars on tab rows
-//  • Added `font-mono` pointing to Space Mono (matches your existing globals.css)
-// ─────────────────────────────────────────────────────────────────────────────
-
 module.exports = {
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
@@ -16,22 +8,31 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        mono: ['"Space Mono"', 'monospace'],
         sans: ['"DM Sans"', 'sans-serif'],
+        mono: ['"Space Mono"', 'monospace'],
       },
       colors: {
         jobr: {
-          black:   '#0a0a0a',
-          dark:    '#111111',
-          card:    '#161616',
-          accent:  '#e8ff47',
-          muted:   '#888888',
+          bg:           '#F5F4F0',
+          card:         '#FFFFFF',
+          subtle:       '#EEECEA',
+          accent:       '#6B4EFF',
+          'accent-dim': 'rgba(107,78,255,0.10)',
+          'accent-lt':  '#EDE9FF',
+          text1:        '#0D0D0D',
+          text2:        '#4A4A5A',
+          text3:        '#8A8A9A',
+          border:       'rgba(13,13,13,0.10)',
+          success:      '#10B981',
+          warning:      '#F59E0B',
         },
+      },
+      borderRadius: {
+        sm: '6px', md: '10px', lg: '16px', xl: '24px',
       },
     },
   },
   plugins: [
-    // Inline plugin — adds `.scrollbar-none` utility
     function ({ addUtilities }) {
       addUtilities({
         '.scrollbar-none': {
