@@ -5,7 +5,6 @@
 import { useState } from 'react';
 import {
   MERCH_PRODUCTS,
-  MerchProduct,
   ProductCategory,
   getProductsByCategory,
 } from '@/lib/merch-products';
