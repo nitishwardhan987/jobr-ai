@@ -1,35 +1,22 @@
 'use client';
-
-// src/app/auth/page.tsx
-// Jobr Auth — Sign In / Sign Up with email+password + Google OAuth
-// Google OAuth: uses your existing GOOGLE_CLIENT_ID from .env
-// After auth: saves user to localStorage, redirects to homepage
-
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 function AuthForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
-
-  const [mode, setMode] = useState<'signin' | 'signup'>(
-    searchParams.get('mode') === 'signup' ? 'signup' : 'signin'
-  );
-  const [name,     setName]     = useState('');
-  const [email,    setEmail]    = useState('');
+  const [mode, setMode] = useState<'signin'|'signup'>(searchParams.get('mode') === 'signup' ? 'signup' : 'signin');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error,    setError]    = useState('');
-  const [loading,  setLoading]  = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  // If user is already logged in, redirect home
   useEffect(() => {
-    try {
-      if (localStorage.getItem('jobr_user')) router.push('/');
-    } catch {}
+    if (localStorage.getItem('jobr_session') || localStorage.getItem('jobr_user')) router.push('/');
   }, [router]);
 
-  /* ── Helpers ── */
-  function validateForm() {
+  function validate() {
     if (!email.trim()) return 'Email is required.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Enter a valid email address.';
     if (password.length < 6) return 'Password must be at least 6 characters.';
@@ -37,25 +24,22 @@ function AuthForm() {
     return null;
   }
 
-  function saveUserAndRedirect(userData: { name: string; email: string }) {
+  function saveAndRedirect(userData: { name: string; email: string }) {
     localStorage.setItem('jobr_user', JSON.stringify(userData));
+    localStorage.setItem('jobr_session', JSON.stringify(userData));
+    window.dispatchEvent(new Event('storage'));
     router.push('/');
   }
 
-  /* ── Email / Password submit ── */
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    const err = validateForm();
+    const err = validate();
     if (err) { setError(err); return; }
     setLoading(true);
-
-    // Simulate API call — replace with your real auth endpoint
-    // POST /api/auth/signin or /api/auth/signup
     try {
-      await new Promise(r => setTimeout(r, 800)); // remove when real API is wired
-      const displayName = mode === 'signup' ? name : email.split('@')[0];
-      saveUserAndRedirect({ name: displayName, email });
+      await new Promise(r => setTimeout(r, 600));
+      saveAndRedirect({ name: mode === 'signup' ? name : email.split('@')[0], email });
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {
@@ -63,83 +47,32 @@ function AuthForm() {
     }
   }
 
-  /* ── Google OAuth ── */
   function handleGoogle() {
-    // Kicks off your existing Google OAuth flow at /api/oauth
-    // which you already have set up for Gmail
-    const base = process.env.NEXT_PUBLIC_BASE_URL ?? window.location.origin;
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
-    const redirect = `${base}/oauth/callback`;
-    const scope = encodeURIComponent('openid email profile');
-    const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirect)}&response_type=code&scope=${scope}&access_type=offline&prompt=select_account`;
-    window.location.href = url;
+    const redirect = `${window.location.origin}/oauth/callback`;
+    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirect)}&response_type=code&scope=${encodeURIComponent('openid email profile')}&access_type=offline&prompt=select_account`;
   }
 
-  /* ── Render ── */
   const isSignup = mode === 'signup';
 
   return (
-    <div style={{
-      minHeight: 'calc(100vh - 60px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '40px 24px',
-    }}>
+    <div style={{ minHeight: 'calc(100vh - 60px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', background: '#060B18' }}>
       <div style={{ width: '100%', maxWidth: 420 }}>
 
-        {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{
-            width: 48, height: 48,
-            background: 'var(--accent)',
-            borderRadius: 14,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 20, fontWeight: 900, color: '#fff',
-            fontFamily: 'var(--font-mono)',
-            margin: '0 auto 16px',
-          }}>J</div>
-          <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 6 }}>
+          <div style={{ width: 48, height: 48, background: '#38BDF8', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 900, color: '#0F172A', fontFamily: 'monospace', margin: '0 auto 16px' }}>J</div>
+          <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 6, color: '#F8FAFC' }}>
             {isSignup ? 'Create your account' : 'Welcome back'}
           </h1>
-          <p style={{ fontSize: 14, color: 'var(--text-2)' }}>
-            {isSignup
-              ? 'Join thousands of job seekers using Jobr'
-              : 'Sign in to access your Jobr dashboard'}
+          <p style={{ fontSize: 14, color: '#64748B' }}>
+            {isSignup ? 'Join thousands of job seekers using Jobr' : 'Sign in to access your dashboard'}
           </p>
         </div>
 
-        {/* Card */}
-        <div className="card" style={{ padding: '32px 28px' }}>
+        <div style={{ background: '#0D1526', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '28px 24px', boxShadow: '0 4px 32px rgba(0,0,0,0.4)' }}>
 
-          {/* Google OAuth button */}
-          <button
-            type="button"
-            onClick={handleGoogle}
-            style={{
-              width: '100%',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-              padding: '11px 16px',
-              background: 'var(--bg-card)',
-              border: '1.5px solid var(--border)',
-              borderRadius: 'var(--radius-md)',
-              cursor: 'pointer',
-              fontSize: 14, fontWeight: 500,
-              color: 'var(--text-1)',
-              transition: 'border-color 0.15s, background 0.15s',
-              marginBottom: 20,
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-hover)';
-              (e.currentTarget as HTMLElement).style.background = 'var(--bg-subtle)';
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
-              (e.currentTarget as HTMLElement).style.background = 'var(--bg-card)';
-            }}
-          >
-            {/* Google G logo */}
-            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+          <button type="button" onClick={handleGoogle} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '11px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#F8FAFC', marginBottom: 20 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
@@ -148,114 +81,47 @@ function AuthForm() {
             Continue with Google
           </button>
 
-          {/* Divider */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-            <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-            <span style={{ fontSize: 12, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>or</span>
-            <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
+            <span style={{ fontSize: 12, color: '#475569', fontFamily: 'monospace' }}>or</span>
+            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {isSignup && (
               <div>
-                <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-1)', display: 'block', marginBottom: 6 }}>
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="Nitish Wardhan"
-                  autoComplete="name"
-                  className="input"
-                />
+                <label style={{ fontSize: 13, fontWeight: 500, color: '#94A3B8', display: 'block', marginBottom: 6 }}>Full Name</label>
+                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Your name" autoComplete="name" className="input" />
               </div>
             )}
-
             <div>
-              <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-1)', display: 'block', marginBottom: 6 }}>
-                Email Address
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                autoComplete="email"
-                className="input"
-              />
+              <label style={{ fontSize: 13, fontWeight: 500, color: '#94A3B8', display: 'block', marginBottom: 6 }}>Email Address</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" className="input" />
             </div>
-
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-1)' }}>
-                  Password
-                </label>
-                {!isSignup && (
-                  <a href="#" style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none' }}>
-                    Forgot password?
-                  </a>
-                )}
+                <label style={{ fontSize: 13, fontWeight: 500, color: '#94A3B8' }}>Password</label>
+                {!isSignup && <a href="#" style={{ fontSize: 12, color: '#38BDF8' }}>Forgot password?</a>}
               </div>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder={isSignup ? 'At least 6 characters' : '••••••••'}
-                autoComplete={isSignup ? 'new-password' : 'current-password'}
-                className="input"
-              />
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={isSignup ? 'At least 6 characters' : '••••••••'} autoComplete={isSignup ? 'new-password' : 'current-password'} className="input" />
             </div>
-
-            {/* Error */}
             {error && (
-              <div style={{
-                padding: '10px 14px',
-                background: '#FEF2F2',
-                border: '1px solid #FECACA',
-                borderRadius: 'var(--radius-md)',
-                fontSize: 13, color: '#B91C1C',
-              }}>
-                {error}
-              </div>
+              <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 10, fontSize: 13, color: '#F87171' }}>{error}</div>
             )}
-
-            {/* Submit */}
-            <button
-              type="submit"
-              className="btn-primary"
-              disabled={loading}
-              style={{
-                width: '100%', fontSize: 15, padding: '12px',
-                opacity: loading ? 0.7 : 1,
-                cursor: loading ? 'not-allowed' : 'pointer',
-                marginTop: 4,
-              }}
-            >
-              {loading
-                ? (isSignup ? 'Creating account...' : 'Signing in...')
-                : (isSignup ? 'Create Account' : 'Sign In')}
+            <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%', fontSize: 15, padding: '12px', marginTop: 4 }}>
+              {loading ? (isSignup ? 'Creating account...' : 'Signing in...') : (isSignup ? 'Create Account' : 'Sign In')}
             </button>
           </form>
         </div>
 
-        {/* Mode switch */}
-        <p style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: 'var(--text-2)' }}>
+        <p style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: '#64748B' }}>
           {isSignup ? 'Already have an account? ' : "Don't have an account? "}
-          <button
-            onClick={() => { setMode(isSignup ? 'signin' : 'signup'); setError(''); }}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: 'var(--accent)', fontWeight: 600, fontSize: 14,
-              padding: 0, textDecoration: 'underline',
-            }}
-          >
+          <button onClick={() => { setMode(isSignup ? 'signin' : 'signup'); setError(''); }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#38BDF8', fontWeight: 600, fontSize: 14, padding: 0 }}>
             {isSignup ? 'Sign In' : 'Sign Up'}
           </button>
         </p>
-
-        <p style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: 'var(--text-3)', lineHeight: 1.5 }}>
+        <p style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: '#334155', lineHeight: 1.5 }}>
           By continuing, you agree to Jobr's Terms of Service and Privacy Policy.
         </p>
       </div>
@@ -264,9 +130,5 @@ function AuthForm() {
 }
 
 export default function AuthPage() {
-  return (
-    <Suspense>
-      <AuthForm />
-    </Suspense>
-  );
+  return <Suspense><AuthForm /></Suspense>;
 }
