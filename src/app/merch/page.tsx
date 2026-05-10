@@ -248,7 +248,7 @@ function DesignStudio({ product, onBack }: { product: MerchProduct; onBack: () =
   const totalPrice = unitPrice * qty;
 
   function handleOrder() {
-    const phone = '919945900292';
+    const phone = '919436781545'; // Jobr WhatsApp number
     const msg = encodeURIComponent(
       `Hi! I want to order Jobr merch:\n\nProduct: ${product.name}\nColour: ${selectedColor.name}\n${selectedSize ? `Size: ${selectedSize}\n` : ''}Qty: ${qty}\n${designText ? `Design text: "${designText}"\n` : ''}Placement: ${placement}\n\nTotal: ₹${totalPrice.toLocaleString('en-IN')}\n\nPlease confirm!`
     );
