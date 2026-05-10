@@ -5,13 +5,13 @@ import { useRouter, usePathname } from 'next/navigation';
 import { LogOut, Menu, X, LayoutDashboard, ShoppingBag, GraduationCap, Home } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Optimizer', icon: LayoutDashboard, color: '#A78BFA', desc: 'AI CV Optimizer' },
+  { href: '/dashboard', label: 'Prep', icon: LayoutDashboard, color: '#A78BFA', desc: 'AI CV Optimizer' },
   { href: '/merch',     label: 'Merch',     icon: ShoppingBag,     color: '#34D399', desc: 'Custom Merchandise' },
   { href: '/mentor',    label: 'Mentor',    icon: GraduationCap,   color: '#FB923C', desc: 'Mentor Sourcing' },
 ];
 
 const PAGE_LABELS: Record<string, { label: string; color: string }> = {
-  '/dashboard':        { label: 'Optimizer.Jobr', color: '#A78BFA' },
+  '/dashboard':        { label: 'Prep.Jobr', color: '#A78BFA' },
   '/merch':            { label: 'Merch.Jobr',     color: '#34D399' },
   '/mentor':           { label: 'Mentor.Jobr',    color: '#FB923C' },
   '/mentor/onboard':   { label: 'Mentor.Jobr',    color: '#FB923C' },
@@ -241,7 +241,7 @@ export function Footer() {
             <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16 }}>Products</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {[
-                { label: 'Optimizer.Jobr', href: '/dashboard', desc: 'AI CV Optimizer', color: '#A78BFA' },
+                { label: 'Prep.Jobr', href: '/dashboard', desc: 'AI Career Insider', color: '#A78BFA' },
                 { label: 'Merch.Jobr',     href: '/merch',     desc: 'Custom Merchandise', color: '#34D399' },
                 { label: 'Mentor.Jobr',    href: '/mentor',    desc: 'Mentor Sourcing', color: '#FB923C' },
               ].map(l => (
