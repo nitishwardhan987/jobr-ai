@@ -53,11 +53,7 @@ function PrepInner() {
       {/* Top tab bar */}
       <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(20,20,36,0.9)', backdropFilter: 'blur(12px)', padding: '0 20px', display: 'flex', alignItems: 'center', gap: 0, overflowX: 'auto', flexShrink: 0 }} className="scrollbar-hide">
 
-        {/* Brand pill */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px 12px 0', borderRight: '1px solid rgba(255,255,255,0.06)', marginRight: 12, flexShrink: 0 }}>
-          <div style={{ width: 28, height: 28, background: 'linear-gradient(135deg, #7C3AED, #F97316)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, color: '#fff', fontFamily: 'monospace' }}>P</div>
-          <span style={{ fontSize: 14, fontWeight: 800, color: '#F1F0FF', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>Prep.Jobr</span>
-        </div>
+      
 
         {/* Tabs */}
         {TABS.map(tab => (
