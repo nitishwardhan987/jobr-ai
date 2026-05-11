@@ -83,12 +83,8 @@ function PrepInner() {
       {/* Tab bar */}
       <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(20,20,36,0.9)', backdropFilter: 'blur(12px)', padding: '0 20px', display: 'flex', alignItems: 'center', overflowX: 'auto', flexShrink: 0 }} className="scrollbar-hide">
 
-        {/* Brand — no left panel label */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px 12px 0', borderRight: '1px solid rgba(255,255,255,0.06)', marginRight: 12, flexShrink: 0 }}>
-          <div style={{ width: 28, height: 28, background: 'linear-gradient(135deg, #7C3AED, #F97316)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, color: '#fff', fontFamily: 'monospace' }}>P</div>
-          <span style={{ fontSize: 14, fontWeight: 800, color: '#F1F0FF', fontFamily: 'var(--font-display)', whiteSpace: 'nowrap' }}>Prep.Jobr</span>
-          {demoMode && <span style={{ fontSize: 9, fontWeight: 700, color: '#A78BFA', background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.25)', padding: '2px 6px', borderRadius: 99, fontFamily: 'monospace' }}>DEMO</span>}
-        </div>
+        {/* Brand — removed left panel label, added padding */}
+        <div style={{ paddingRight: '20px' }} />
 
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => dispatch({ type: 'SET_TAB', tab: tab.id as any })} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '16px 14px', background: 'transparent', border: 'none', cursor: 'pointer', borderBottom: state.activeTab === tab.id ? `2px solid ${tab.color}` : '2px solid transparent', color: state.activeTab === tab.id ? tab.color : '#64748B', fontSize: 13, fontWeight: state.activeTab === tab.id ? 700 : 500, fontFamily: 'var(--font-display)', whiteSpace: 'nowrap', transition: 'all 0.15s', marginBottom: '-1px' }}>
@@ -920,7 +916,7 @@ function MentorTab({ demoMode }: { demoMode: boolean }) {
   const MENTORS = [
     { name: 'Priya Sharma', role: 'Ex-Google PM · IIM-A',          domain: 'Product Management', rate: 25, rating: 4.9, sessions: 48, color: '#EC4899', email: 'priya.sharma@mentor.jobr' },
     { name: 'Arjun Mehta',  role: 'Staff Engineer @ Swiggy',       domain: 'Software Engineering', rate: 20, rating: 4.8, sessions: 62, color: '#A78BFA', email: 'arjun.mehta@mentor.jobr' },
-    { name: 'Sneha Iyer',   role: 'Data Science Lead · Ex-Netflix', domain: 'Data Science & AI',   rate: 18, rating: 4.7, sessions: 35, color: '#06B6D4', email: 'sneha.iyer@mentor.jobr' },
+    { name: 'Sneha Iyer',   role: 'Data Science Lead · Ex-Netflix', domain: 'Data Science & AI',  rate: 18, rating: 4.7, sessions: 35, color: '#06B6D4', email: 'sneha.iyer@mentor.jobr' },
   ];
   return (
     <div style={{ padding: 24, maxWidth: 780 }}>
