@@ -25,15 +25,36 @@ export default function MentorProfile() {
   }, [id]);
 
   const loadMentor = async () => {
-    try {
-      const { data } = await supabase.from('mentor_profiles').select('*').eq('id', id).single();
-      if (data) { setMentor(data); if (data.session_types?.[0]) setSelectedSession(data.session_types[0]); }
-      else {
-  router.push('/mentor');
-            }
-    } catch { router.push('/mentor'); }
-    finally { setLoading(false); }
-  };
+  try {
+    const { data } = await supabase
+      .from('mentor_profiles')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (data) {
+      // Parse session_types if it's a string
+      const parsed = {
+        ...data,
+        session_types: typeof data.session_types === 'string'
+          ? JSON.parse(data.session_types || '[]')
+          : data.session_types || [],
+        availability: typeof data.availability === 'string'
+          ? JSON.parse(data.availability || '{}')
+          : data.availability || {},
+      };
+      setMentor(parsed);
+      if (parsed.session_types?.[0]) setSelectedSession(parsed.session_types[0]);
+      else setSelectedSession(null);
+    } else {
+      router.push('/mentor');
+    }
+  } catch {
+    router.push('/mentor');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleBook = () => {
     if (!isLoggedIn) { router.push('/auth?redirect=/mentor/' + id); return; }

@@ -33,7 +33,7 @@ export default function AdminPage() {
   const [email,   setEmail]   = useState('');
   const [pin,     setPin]     = useState('');
   const [pinErr,  setPinErr]  = useState('');
-  const [tab,     setTab]     = useState<'overview'|'bugs'|'visibility'|'mentors'>('overview');
+  const [tab,     setTab]     = useState<'overview'|'bugs'|'visibility'|'mentors'|'team'>('overview');
   const [bugs,    setBugs]    = useState<BugReport[]>([]);
   const [vis,     setVis]     = useState<VisItem[]>([]);
   const [mentors, setMentors] = useState<any[]>([]);
@@ -210,6 +210,7 @@ export default function AdminPage() {
             { id: 'bugs',       label: `Bugs & Tickets (${openBugs} open)` },
             { id: 'visibility', label: 'Page Controls' },
             { id: 'mentors',    label: 'Mentors' },
+            { id: 'team',       label: 'Team Members' },
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id as any)} style={{ padding: '11px 18px', background: 'transparent', border: 'none', cursor: 'pointer', borderBottom: tab === t.id ? '2px solid #7C3AED' : '2px solid transparent', color: tab === t.id ? '#A78BFA' : '#475569', fontSize: 13, fontWeight: tab === t.id ? 700 : 500, fontFamily: 'var(--font-display)', whiteSpace: 'nowrap', marginBottom: '-1px' }}>
               {t.label}
@@ -334,6 +335,8 @@ export default function AdminPage() {
             {mentors.length === 0 && <div style={{ textAlign: 'center', padding: 60, color: '#334155' }}>No mentors yet</div>}
           </div>
         )}
+        {/* TEAM TAB */}
+{!loading && tab === 'team' && <TeamTab />}
       </div>
 
       <style jsx global>{`
@@ -390,4 +393,115 @@ function BugCard({ bug: b, expanded, onExpand, onUpdate }: { bug: BugReport; exp
       )}
     </div>
   );
+function TeamTab() {
+  const [members,   setMembers]   = useState<any[]>([]);
+  const [showForm,  setShowForm]  = useState(false);
+  const [adding,    setAdding]    = useState(false);
+  const [form, setForm] = useState({
+    name: '', role: '', bio: '', linkedin_url: '',
+    photo_url: '', email: '', display_order: 1,
+  });
+
+  useEffect(() => { load(); }, []);
+
+  const load = async () => {
+    const { data } = await supabase.from('team_members').select('*').order('display_order');
+    setMembers(data || []);
+  };
+
+  const handleAdd = async () => {
+    if (!form.name || !form.role) return;
+    setAdding(true);
+    await supabase.from('team_members').insert(form);
+    await load();
+    setForm({ name: '', role: '', bio: '', linkedin_url: '', photo_url: '', email: '', display_order: 1 });
+    setShowForm(false);
+    setAdding(false);
+  };
+
+  const handleToggle = async (id: string, current: boolean) => {
+    await supabase.from('team_members').update({ is_active: !current }).eq('id', id);
+    setMembers(m => m.map(t => t.id === id ? { ...t, is_active: !current } : t));
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Remove this team member?')) return;
+    await supabase.from('team_members').delete().eq('id', id);
+    setMembers(m => m.filter(t => t.id !== id));
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#A78BFA', fontFamily: 'monospace' }}>
+          TEAM MEMBERS — visible in footer and About page
+        </div>
+        <button onClick={() => setShowForm(!showForm)} style={{ background: '#7C3AED', color: '#fff', border: 'none', borderRadius: 100, padding: '8px 20px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+          {showForm ? 'Cancel' : '+ Add Member'}
+        </button>
+      </div>
+
+      {showForm && (
+        <div style={{ background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 16, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+            {[
+              { key: 'name',         label: 'NAME *',        placeholder: 'Full name' },
+              { key: 'role',         label: 'ROLE *',        placeholder: 'e.g. Co-founder & CTO' },
+              { key: 'email',        label: 'EMAIL',         placeholder: 'name@jobr.co.in' },
+              { key: 'linkedin_url', label: 'LINKEDIN URL',  placeholder: 'https://linkedin.com/in/...' },
+              { key: 'photo_url',    label: 'PHOTO URL',     placeholder: 'https://...' },
+              { key: 'display_order',label: 'ORDER',         placeholder: '1', type: 'number' },
+            ].map(f => (
+              <div key={f.key}>
+                <label style={{ fontSize: 10, color: '#475569', fontFamily: 'monospace', display: 'block', marginBottom: 4 }}>{f.label}</label>
+                <input
+                  type={f.type || 'text'}
+                  className="input"
+                  placeholder={f.placeholder}
+                  value={(form as any)[f.key]}
+                  onChange={e => setForm(prev => ({ ...prev, [f.key]: f.type === 'number' ? Number(e.target.value) : e.target.value }))}
+                  style={{ fontSize: 13 }}
+                />
+              </div>
+            ))}
+            <div style={{ gridColumn: '1/-1' }}>
+              <label style={{ fontSize: 10, color: '#475569', fontFamily: 'monospace', display: 'block', marginBottom: 4 }}>BIO</label>
+              <textarea className="input" placeholder="Short bio for About page..." value={form.bio} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))} style={{ height: 70, resize: 'none', fontSize: 13 }} />
+            </div>
+          </div>
+          <button onClick={handleAdd} disabled={adding || !form.name || !form.role} style={{ background: '#7C3AED', color: '#fff', border: 'none', borderRadius: 100, padding: '10px 24px', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: adding ? 0.7 : 1, width: 'fit-content' }}>
+            {adding ? 'Adding...' : 'Add to Team'}
+          </button>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {members.map(m => (
+          <div key={m.id} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #7C3AED, #F97316)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#fff', flexShrink: 0, overflow: 'hidden' }}>
+              {m.photo_url ? <img src={m.photo_url} alt={m.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : m.name?.[0]}
+            </div>
+            <div style={{ flex: 1, minWidth: 140 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#F1F0FF', fontFamily: 'var(--font-display)' }}>{m.name}</div>
+              <div style={{ fontSize: 12, color: '#475569' }}>{m.role}</div>
+              {m.linkedin_url && <a href={m.linkedin_url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#A78BFA' }}>LinkedIn →</a>}
+            </div>
+            <div style={{ fontSize: 10, color: '#334155', fontFamily: 'monospace' }}>#{m.display_order}</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => handleToggle(m.id, m.is_active)} style={{ background: m.is_active ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${m.is_active ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)'}`, borderRadius: 100, padding: '6px 14px', cursor: 'pointer', color: m.is_active ? '#10B981' : '#EF4444', fontSize: 12, fontWeight: 700 }}>
+                {m.is_active ? '✓ Visible' : '✗ Hidden'}
+              </button>
+              <button onClick={() => handleDelete(m.id)} style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: 100, padding: '6px 14px', cursor: 'pointer', color: '#EF4444', fontSize: 12, fontWeight: 700 }}>
+                Remove
+              </button>
+            </div>
+          </div>
+        ))}
+        {members.length === 0 && (
+          <div style={{ textAlign: 'center', padding: 40, color: '#334155' }}>No team members yet.</div>
+        )}
+      </div>
+    </div>
+  );
+}
 }
