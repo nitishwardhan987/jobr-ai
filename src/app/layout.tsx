@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Header, Footer } from '@/components/Navigation';
+import BugWidget from '@/components/BugWidget';
 
 export const metadata: Metadata = {
-  title: 'Jobr — AI Tools for Career Growth',
-  description: 'AI-powered CV optimisation, custom merch, and mentor sourcing — built for India\'s tech elite.',
+  title: 'Jobr — India\'s AI Career Platform',
+  description: 'Optimize your CV with AI, source verified mentors for your edtech, or order custom merch.',
   icons: { icon: '/favicon.ico' },
 };
 
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Header />
         <main>{children}</main>
         <Footer />
+        <BugWidget />
       </body>
     </html>
   );
