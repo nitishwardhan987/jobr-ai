@@ -1033,7 +1033,7 @@ function ProModal() {
             </div>
           ))}
         </div>
-        <a href={`https://wa.me/919945900292?text=${encodeURIComponent('Hi! I want to upgrade to Jobr Prep Pro. My email: ')}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'linear-gradient(135deg, #7C3AED, #6D28D9)', color: '#fff', textDecoration: 'none', padding: '13px', borderRadius: 100, fontWeight: 700, fontSize: 15, fontFamily: 'var(--font-display)' }}>
+        <a href={`https://wa.me/919436781545?text=${encodeURIComponent('Hi! I want to upgrade to Jobr Prep Pro. My email: ')}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'linear-gradient(135deg, #7C3AED, #6D28D9)', color: '#fff', textDecoration: 'none', padding: '13px', borderRadius: 100, fontWeight: 700, fontSize: 15, fontFamily: 'var(--font-display)' }}>
           <Sparkles size={15} /> Upgrade via WhatsApp
         </a>
         <div style={{ fontSize: 11, color: '#334155', marginTop: 10 }}>₹299/month · Instant activation</div>

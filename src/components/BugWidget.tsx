@@ -113,7 +113,7 @@ export default function BugWidget() {
       const waText = encodeURIComponent(
         `🚨 New ${t?.label} on Jobr.co.in\n\nType: ${t?.label}\nPriority: ${report.priority?.toUpperCase()}\nPage: ${report.page_url}\nTitle: ${report.title}\nDescription: ${report.description}\nUser: ${report.user_email || 'Anonymous'}\n\nView: jobr.co.in/admin`
       );
-      window.open(`https://wa.me/919945900292?text=${waText}`, '_blank');
+      window.open(`https://wa.me/919436781545?text=${waText}`, '_blank');
       setSubmitted(true);
     } catch (e: any) {
       setError(e.message || 'Submission failed.');

@@ -68,7 +68,7 @@ function Inner() {
 
   function requestTopUp(credits: number) {
     const waText = encodeURIComponent(`Hi Nitish, I'd like to top up my Mentor.Jobr wallet.\n\nCompany: ${profile?.company_name}\nEmail: ${profile?.user_email}\nCredits: ${credits}\nAmount: ₹${(credits * CREDIT_TO_INR).toLocaleString('en-IN')}\n\nPlease send UPI details. Thanks!`);
-    window.open(`https://wa.me/919945900292?text=${waText}`, '_blank');
+    window.open(`https://wa.me/919436781545?text=${waText}`, '_blank');
   }
 
   if (loading) return <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ width: 28, height: 28, border: '3px solid rgba(124,58,237,0.2)', borderTop: '3px solid #7C3AED', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>;

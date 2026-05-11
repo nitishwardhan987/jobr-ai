@@ -43,7 +43,7 @@ export default function MentorDashboard() {
   async function requestWithdrawal() {
     if (!mentor) return;
     const waText = encodeURIComponent(`Hi Nitish, I'd like to withdraw my Mentor.Jobr earnings.\n\nEmail: ${mentor.user_email}\nCredits: ${mentor.wallet_credits}\nAmount: ₹${creditsToINR(mentor.wallet_credits || 0)}\n\nPlease process my payout. Thanks!`);
-    window.open(`https://wa.me/919945900292?text=${waText}`, '_blank');
+    window.open(`https://wa.me/919436781545?text=${waText}`, '_blank');
   }
 
   if (loading) return <Spinner />;
