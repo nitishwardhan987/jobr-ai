@@ -42,7 +42,34 @@ export default function MerchPage() {
   }
 
   return (
-    <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0 24px' }}>
+  <div style={{ background: '#1C1C2E', minHeight: '100vh' }}>
+
+    {/* ── MERCH.JOBR HERO ── */}
+    <div style={{ background: 'linear-gradient(145deg, rgba(16,185,129,0.12) 0%, transparent 60%)', borderBottom: '1px solid rgba(16,185,129,0.12)', padding: 'clamp(40px,6vw,72px) 24px 48px' }}>
+      <div style={{ maxWidth: 1120, margin: '0 auto' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.22)', borderRadius: 100, padding: '5px 14px', marginBottom: 20 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', animation: 'pulse-dot 2s infinite' }} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#10B981', fontFamily: 'monospace', letterSpacing: '0.1em' }}>MERCH.JOBR</span>
+        </div>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(32px,5vw,60px)', fontWeight: 900, color: '#F1F0FF', letterSpacing: '-0.03em', lineHeight: 1.05, marginBottom: 14 }}>
+          Your brand.<br />
+          <span style={{ background: 'linear-gradient(135deg, #10B981, #06B6D4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>On everything.</span>
+        </h1>
+        <p style={{ fontSize: 'clamp(14px,2vw,18px)', color: '#64748B', maxWidth: 520, lineHeight: 1.65, marginBottom: 28 }}>
+          Custom merchandise for students, teams, and EdTech cohorts. No minimum order headaches. WhatsApp ordering. Delivered across India.
+        </p>
+        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+          {[{value:'18+',label:'Products'},{value:'₹189',label:'Starting from'},{value:'10+',label:'Units for bulk'},{value:'🇮🇳',label:'Pan India delivery'}].map(s=>(
+            <div key={s.label} style={{textAlign:'center'}}>
+              <div style={{fontSize:20,fontWeight:900,color:'#10B981',fontFamily:'var(--font-display)'}}>{s.value}</div>
+              <div style={{fontSize:11,color:'#475569'}}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    <div style={{ maxWidth: 1120, margin: '0 auto', padding: '32px 24px' }}>
 
       {/* Header */}
       <div style={{
@@ -139,7 +166,9 @@ export default function MerchPage() {
         </div>
       )}
     </div>
+  </div>
   );
+
 }
 
 /* ── MerchCard ──────────────────────────────────────────────────────────────── */

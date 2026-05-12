@@ -51,6 +51,33 @@ function PrepInner() {
 
   return (
     <div style={{ background: '#1C1C2E', minHeight: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
+
+
+      {/* PREP.JOBR HERO */}
+      <div style={{ background: 'linear-gradient(145deg, rgba(124,58,237,0.12) 0%, transparent 60%)', borderBottom: '1px solid rgba(124,58,237,0.12)', padding: 'clamp(28px,4vw,44px) 20px clamp(20px,3vw,32px)' }}>
+        <div style={{ maxWidth: 1120, margin: '0 auto' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.22)', borderRadius: 100, padding: '5px 14px', marginBottom: 14 }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#7C3AED', animation: 'pulse-dot 2s infinite' }} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#A78BFA', fontFamily: 'monospace', letterSpacing: '0.1em' }}>PREP.JOBR</span>
+          </div>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(26px,4vw,48px)', fontWeight: 900, color: '#F1F0FF', letterSpacing: '-0.03em', lineHeight: 1.05, marginBottom: 10 }}>
+            Track every application.<br />
+            <span style={{ background: 'linear-gradient(135deg, #A78BFA, #7C3AED)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Win every interview.</span>
+          </h1>
+          <p style={{ fontSize: 'clamp(13px,1.8vw,15px)', color: '#64748B', maxWidth: 500, lineHeight: 1.6, marginBottom: 18 }}>
+            AI CV optimizer · Job tracker · Mock interviews · Skill gap analysis. Bring your own Gemini key. Zero data stored.
+          </p>
+          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+            {[{value:'3',label:'Free mock interviews'},{value:'0%',label:'CV data stored'},{value:'XYZ',label:"Google formula"}].map(s=>(
+              <div key={s.label}>
+                <div style={{fontSize:18,fontWeight:900,color:'#A78BFA',fontFamily:'var(--font-display)'}}>{s.value}</div>
+                <div style={{fontSize:11,color:'#475569'}}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {demoMode && (
         <div style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(249,115,22,0.10))', borderBottom: '1px solid rgba(124,58,237,0.25)', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -65,11 +92,9 @@ function PrepInner() {
       )}
 
       <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(20,20,36,0.9)', backdropFilter: 'blur(12px)', padding: '0 20px', display: 'flex', alignItems: 'center', overflowX: 'auto', flexShrink: 0 }} className="scrollbar-hide">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px 12px 0', borderRight: '1px solid rgba(255,255,255,0.06)', marginRight: 12, flexShrink: 0 }}>
-          <div style={{ width: 28, height: 28, background: 'linear-gradient(135deg, #7C3AED, #F97316)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, color: '#fff', fontFamily: 'monospace' }}>P</div>
-          <span style={{ fontSize: 14, fontWeight: 800, color: '#F1F0FF', fontFamily: 'var(--font-display)', whiteSpace: 'nowrap' }}>Prep.Jobr</span>
-          {demoMode && <span style={{ fontSize: 9, fontWeight: 700, color: '#A78BFA', background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.25)', padding: '2px 6px', borderRadius: 99, fontFamily: 'monospace' }}>DEMO</span>}
-        </div>
+        {demoMode && (
+          <span style={{ fontSize: 9, fontWeight: 700, color: '#A78BFA', background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.25)', padding: '3px 8px', borderRadius: 99, fontFamily: 'monospace', marginRight: 8, flexShrink: 0 }}>DEMO</span>
+        )}
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => dispatch({ type: 'SET_TAB', tab: tab.id as any })} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '16px 14px', background: 'transparent', border: 'none', cursor: 'pointer', borderBottom: state.activeTab === tab.id ? `2px solid ${tab.color}` : '2px solid transparent', color: state.activeTab === tab.id ? tab.color : '#64748B', fontSize: 13, fontWeight: state.activeTab === tab.id ? 700 : 500, fontFamily: 'var(--font-display)', whiteSpace: 'nowrap', transition: 'all 0.15s', marginBottom: '-1px' }}>
             <tab.icon size={14} />{tab.label}
@@ -82,7 +107,7 @@ function PrepInner() {
               <span style={{ fontSize: 10, fontWeight: 700, color: state.apiKey ? '#10B981' : '#EF4444', fontFamily: 'monospace' }}>{state.apiKey ? 'KEY ✓' : 'NO KEY'}</span>
             </div>
           )}
-          <span style={{ fontSize: 11, color: '#334155', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{state.userName || (demoMode ? 'demo' : '')}</span>
+
         </div>
       </div>
 
