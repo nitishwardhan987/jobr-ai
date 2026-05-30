@@ -14,11 +14,10 @@ module.exports = {
         sans:    ['"Inter"', 'sans-serif'],
       },
       colors: {
-        canvas:   '#F8F5F0',
-        bg:       '#F5F1EA',
-        surface:  '#FFFFFF',
-        elevated: '#FCFAF7',
-        accent:   {
+        canvas:  '#F8F5F0',
+        bg:      '#F5F1EA',
+        surface: '#FFFFFF',
+        accent: {
           DEFAULT: '#F97316',
           hover:   '#EA580C',
           active:  '#C2410C',
@@ -36,19 +35,12 @@ module.exports = {
           subtle:  '#F0EDEA',
           strong:  '#D6D3D1',
         },
-        success: '#16A34A',
-        warning: '#D97706',
-        error:   '#DC2626',
       },
       borderRadius: {
-        sm:  '8px',
-        md:  '12px',
-        lg:  '20px',
-        xl:  '28px',
-        '2xl': '36px',
+        sm: '8px', md: '12px', lg: '20px', xl: '28px', '2xl': '36px',
       },
       maxWidth: {
-        content: '1440px',
+        content: '1280px',
         reading: '720px',
       },
     },

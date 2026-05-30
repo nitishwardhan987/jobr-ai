@@ -1,766 +1,900 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { motion, useInView, useAnimation, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Zap, Package, Truck, CheckCircle, BarChart3, Globe, Webhook, Database, Users, GitBranch, Shield } from 'lucide-react';
+import { motion, useInView, AnimatePresence } from 'framer-motion';
+import {
+  FileText, Users, ShoppingBag, ArrowRight, CheckCircle,
+  Star, TrendingUp, Zap, BookOpen, Target, Award, ChevronRight,
+  BarChart2, Clock, MessageSquare, Briefcase, Sparkles,
+} from 'lucide-react';
 
-/* ─── Shared tokens ──────────────────────────────────────────── */
+/* ─── Palette ─────────────────────────────────────────────────── */
 const C = {
-  canvas:  '#F8F5F0',
-  bg:      '#F5F1EA',
-  surface: '#FFFFFF',
-  elev:    '#FCFAF7',
-  text1:   '#18181B',
-  text2:   '#52525B',
-  text3:   '#71717A',
-  border:  '#E7E5E4',
-  bStrong: '#D6D3D1',
-  accent:  '#F97316',
-  aHover:  '#EA580C',
-  aSoft:   '#FFF7ED',
-  aBorder: '#FED7AA',
-  success: '#16A34A',
-  warning: '#D97706',
+  canvas: '#F8F5F0', bg: '#F5F1EA', surface: '#FFFFFF', elev: '#FCFAF7',
+  t1: '#18181B', t2: '#52525B', t3: '#71717A', t4: '#A1A1AA',
+  border: '#E7E5E4', bStrong: '#D6D3D1',
+  orange: '#F97316', oHover: '#EA580C', oSoft: '#FFF7ED', oBorder: '#FED7AA',
+  purple: '#7C3AED', pSoft: 'rgba(124,58,237,0.10)',
+  green:  '#16A34A', gSoft: '#F0FDF4',
+  blue:   '#2563EB', bSoft: 'rgba(37,99,235,0.10)',
 };
 
-/* ─── Scroll-reveal wrapper ──────────────────────────────────── */
-function Reveal({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
+/* ─── Section wrapper ──────────────────────────────────────────── */
+const W = ({ children, style = {} }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+  <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', ...style }}>{children}</div>
+);
+
+/* ─── Scroll reveal ────────────────────────────────────────────── */
+function Reveal({ children, delay = 0, y = 28 }: { children: React.ReactNode; delay?: number; y?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: '-80px' });
   return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 32 }}
+    <motion.div ref={ref}
+      initial={{ opacity: 0, y }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.65, delay, ease: [0.16, 1, 0.3, 1] }}
-      className={className}
-    >
+      transition={{ duration: 0.65, delay, ease: [0.16, 1, 0.3, 1] }}>
       {children}
     </motion.div>
   );
 }
 
-/* ─── Animated counter ───────────────────────────────────────── */
+/* ─── Animated counter ─────────────────────────────────────────── */
 function Counter({ to, suffix = '', prefix = '' }: { to: number; suffix?: string; prefix?: string }) {
   const [val, setVal] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true });
-
   useEffect(() => {
     if (!inView) return;
-    const duration = 1800;
-    const start = Date.now();
+    const dur = 1800; const start = Date.now();
     const tick = () => {
-      const elapsed = Date.now() - start;
-      const progress = Math.min(elapsed / duration, 1);
-      const ease = 1 - Math.pow(1 - progress, 3);
-      setVal(Math.round(ease * to));
-      if (progress < 1) requestAnimationFrame(tick);
+      const p = Math.min((Date.now() - start) / dur, 1);
+      setVal(Math.round((1 - Math.pow(1 - p, 3)) * to));
+      if (p < 1) requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
   }, [inView, to]);
-
   return <span ref={ref}>{prefix}{val.toLocaleString()}{suffix}</span>;
 }
 
-/* ─── Workflow node ──────────────────────────────────────────── */
-const WORKFLOW_STEPS = [
-  { id: 'trigger',   label: 'Webhook Trigger',     icon: Zap,         color: '#F97316', desc: 'Event received from HRMS/LMS' },
-  { id: 'validate',  label: 'Address Validation',  icon: Shield,      color: '#3B82F6', desc: 'Geocode & verify delivery address' },
-  { id: 'inventory', label: 'Inventory Allocation', icon: Package,    color: '#8B5CF6', desc: 'Reserve SKUs from warehouse pool' },
-  { id: 'print',     label: 'Print Queue',          icon: GitBranch,  color: '#10B981', desc: 'Job dispatched to print partner' },
-  { id: 'shipment',  label: 'Shipment Created',     icon: Truck,      color: '#F59E0B', desc: 'Label generated, carrier assigned' },
-  { id: 'tracking',  label: 'Tracking Generated',   icon: Globe,      color: '#EC4899', desc: 'AWB synced to tracking portal' },
-  { id: 'crm',       label: 'CRM Updated',          icon: Database,   color: '#06B6D4', desc: 'Order record pushed to CRM/LMS' },
-];
-
-function WorkflowVisualization() {
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const [running, setRunning] = useState(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const inView = useInView(useRef<HTMLDivElement>(null), { once: true });
-
-  const runWorkflow = useCallback(() => {
-    if (running) return;
-    setRunning(true);
-    setActiveIndex(-1);
-    let i = 0;
-    const advance = () => {
-      setActiveIndex(i);
-      i++;
-      if (i < WORKFLOW_STEPS.length) {
-        timerRef.current = setTimeout(advance, 480);
-      } else {
-        setTimeout(() => {
-          setRunning(false);
-          setActiveIndex(-1);
-        }, 2000);
-      }
-    };
-    timerRef.current = setTimeout(advance, 200);
-  }, [running]);
-
-  useEffect(() => {
-    const t = setTimeout(runWorkflow, 1200);
-    return () => { clearTimeout(t); if (timerRef.current) clearTimeout(timerRef.current); };
-  }, []);
-
-  useEffect(() => {
-    if (!running && activeIndex === -1) {
-      const t = setTimeout(runWorkflow, 3500);
-      return () => clearTimeout(t);
-    }
-  }, [running, activeIndex, runWorkflow]);
-
+/* ─── Score ring ───────────────────────────────────────────────── */
+function ScoreRing({ score, color, label }: { score: number; color: string; label: string }) {
+  const ref = useRef<SVGCircleElement>(null);
+  const inView = useInView(ref, { once: true });
+  const r = 36; const circ = 2 * Math.PI * r;
+  const dash = circ * (1 - score / 100);
   return (
-    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 28, padding: '32px 28px', boxShadow: '0 24px 48px rgba(24,24,27,0.10)', position: 'relative', overflow: 'hidden' }}>
-      {/* Background texture */}
-      <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle at 1px 1px, #E7E5E4 1px, transparent 0)', backgroundSize: '24px 24px', opacity: 0.5, pointerEvents: 'none' }} />
-
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28, position: 'relative' }}>
-        <div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: C.text3, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>
-            LIVE WORKFLOW · 247ms avg
-          </div>
-          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, color: C.text1 }}>
-            Onboarding Kit — Batch #4821
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 7, height: 7, borderRadius: '50%', background: C.success, animation: 'pulse-dot 2s infinite' }} />
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: C.success, fontWeight: 600 }}>RUNNING</span>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+      <div style={{ position: 'relative', width: 88, height: 88 }}>
+        <svg width="88" height="88" style={{ transform: 'rotate(-90deg)' }}>
+          <circle cx="44" cy="44" r={r} fill="none" stroke={`${color}18`} strokeWidth="7" />
+          <motion.circle ref={ref} cx="44" cy="44" r={r} fill="none" stroke={color} strokeWidth="7"
+            strokeLinecap="round" strokeDasharray={circ}
+            initial={{ strokeDashoffset: circ }}
+            animate={inView ? { strokeDashoffset: dash } : {}}
+            transition={{ duration: 1.2, ease: 'easeOut', delay: 0.3 }} />
+        </svg>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 18, color: C.t1 }}>{score}</div>
       </div>
-
-      {/* Steps */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 0, position: 'relative' }}>
-        {WORKFLOW_STEPS.map((step, i) => {
-          const Icon = step.icon;
-          const isActive  = activeIndex === i;
-          const isDone    = activeIndex > i;
-          const isPending = activeIndex < i;
-          return (
-            <div key={step.id}>
-              <motion.div
-                animate={isActive ? { x: [0, 2, 0] } : {}}
-                transition={{ duration: 0.3 }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '12px 14px',
-                  borderRadius: 12,
-                  background: isActive ? `${step.color}10` : isDone ? `${C.success}08` : 'transparent',
-                  border: isActive ? `1px solid ${step.color}30` : isDone ? `1px solid ${C.success}18` : '1px solid transparent',
-                  transition: 'all 0.25s ease',
-                  position: 'relative',
-                }}
-              >
-                <div style={{
-                  width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-                  background: isDone ? `${C.success}15` : isActive ? `${step.color}15` : `rgba(24,24,27,0.05)`,
-                  border: `1px solid ${isDone ? `${C.success}25` : isActive ? `${step.color}30` : C.border}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'all 0.25s',
-                  animation: isActive ? 'node-glow 1s infinite' : 'none',
-                }}>
-                  {isDone
-                    ? <CheckCircle size={16} color={C.success} />
-                    : <Icon size={16} color={isActive ? step.color : C.text3} />
-                  }
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: isDone ? C.text2 : isActive ? C.text1 : C.text3, transition: 'color 0.25s' }}>{step.label}</div>
-                  {isActive && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} style={{ fontSize: 11, color: step.color, fontFamily: 'var(--font-mono)', marginTop: 2 }}>
-                      {step.desc}
-                    </motion.div>
-                  )}
-                </div>
-                {isDone && (
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: C.success, fontWeight: 600 }}>✓</span>
-                )}
-                {isActive && (
-                  <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 0.9 }} style={{ width: 6, height: 6, borderRadius: '50%', background: step.color, flexShrink: 0 }} />
-                )}
-              </motion.div>
-
-              {/* Connector */}
-              {i < WORKFLOW_STEPS.length - 1 && (
-                <div style={{ width: 1, height: 8, background: isDone ? `${C.success}40` : C.border, margin: '0 auto 0 31px', transition: 'background 0.3s' }} />
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Replay button */}
-      <button
-        onClick={runWorkflow}
-        disabled={running}
-        style={{ marginTop: 20, width: '100%', padding: '10px', background: C.aSoft, border: `1px solid ${C.aBorder}`, borderRadius: 10, fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: C.accent, cursor: running ? 'not-allowed' : 'pointer', letterSpacing: '0.06em', textTransform: 'uppercase', transition: 'all 0.15s', opacity: running ? 0.5 : 1 }}>
-        {running ? 'Processing...' : '↺  Replay Workflow'}
-      </button>
+      <span style={{ fontSize: 11, color: C.t3, fontFamily: 'var(--font-mono)', textAlign: 'center', lineHeight: 1.3 }}>{label}</span>
     </div>
   );
 }
 
-/* ─── Bento card ─────────────────────────────────────────────── */
-function BentoCard({ title, desc, icon: Icon, color, large = false, children }: { title: string; desc: string; icon: React.ElementType; color: string; large?: boolean; children?: React.ReactNode }) {
-  return (
-    <div style={{
-      background: C.surface,
-      border: `1px solid ${C.border}`,
-      borderRadius: 24,
-      padding: large ? '36px' : '28px',
-      gridColumn: large ? 'span 2' : 'span 1',
-      transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s',
-      cursor: 'default',
-    }}
-      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 20px 48px rgba(24,24,27,0.10)'; }}
-      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.boxShadow = 'none'; }}>
-      <div style={{ width: 44, height: 44, borderRadius: 12, background: `${color}12`, border: `1px solid ${color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-        <Icon size={20} color={color} />
-      </div>
-      <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: C.text1, marginBottom: 6, letterSpacing: '-0.02em' }}>{title}</h3>
-      <p style={{ fontSize: 13, color: C.text3, lineHeight: 1.6, margin: 0 }}>{desc}</p>
-      {children}
-    </div>
-  );
-}
-
-/* ─── Integration node ───────────────────────────────────────── */
-function IntegrationOrb({ label, icon: Icon, color, x, y }: { label: string; icon: React.ElementType; color: string; x: string; y: string }) {
-  return (
-    <motion.div
-      animate={{ y: [0, -6, 0] }}
-      transition={{ duration: 3 + Math.random() * 2, repeat: Infinity, ease: 'easeInOut', delay: Math.random() * 2 }}
-      style={{ position: 'absolute', left: x, top: y, transform: 'translate(-50%, -50%)' }}
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-        <div style={{
-          width: 52, height: 52, borderRadius: 14, background: C.surface,
-          border: `1px solid ${C.border}`, boxShadow: '0 4px 16px rgba(24,24,27,0.08)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Icon size={22} color={color} />
-        </div>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: C.text2, fontWeight: 600, whiteSpace: 'nowrap' }}>{label}</span>
-      </div>
-    </motion.div>
-  );
-}
-
-/* ─── Scale bar ──────────────────────────────────────────────── */
-function ScaleBar({ qty, label, delay }: { qty: string; label: string; delay: number }) {
+/* ─── Progress bar ─────────────────────────────────────────────── */
+function ProgressBar({ label, value, color, delay = 0 }: { label: string; value: number; color: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true });
   return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, x: -20 }}
-      animate={inView ? { opacity: 1, x: 0 } : {}}
-      transition={{ duration: 0.5, delay }}
-      style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 700, color: C.text1, minWidth: 88 }}>{qty}</span>
-      <div style={{ flex: 1, height: 8, background: C.bg, borderRadius: 999, overflow: 'hidden' }}>
+    <div ref={ref} style={{ marginBottom: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: C.t2, fontFamily: 'var(--font-display)' }}>{label}</span>
+        <span style={{ fontSize: 11, color: C.t3, fontFamily: 'var(--font-mono)' }}>{value}%</span>
+      </div>
+      <div style={{ height: 6, background: C.bg, borderRadius: 999, overflow: 'hidden' }}>
         <motion.div
           initial={{ width: 0 }}
-          animate={inView ? { width: label } : { width: 0 }}
-          transition={{ duration: 0.8, delay: delay + 0.2, ease: 'easeOut' }}
-          style={{ height: '100%', background: `linear-gradient(90deg, ${C.accent}, ${C.aHover})`, borderRadius: 999 }}
-        />
-      </div>
-      <span style={{ fontSize: 13, color: C.text3, minWidth: 120, fontFamily: 'var(--font-body)' }}>{label.replace('%', ' kits')}</span>
-    </motion.div>
-  );
-}
-
-/* ─── Interactive Workflow Explorer ──────────────────────────── */
-const TRIGGER_OPTIONS  = ['Webhook', 'CSV Upload', 'LMS Event', 'HRMS Event'];
-const PRODUCT_OPTIONS  = ['T-Shirt Kit', 'Hoodie Bundle', 'Notebook Set', 'Full Onboarding Kit'];
-const QTY_OPTIONS      = ['10–50', '50–500', '500–5,000', '5,000+'];
-const REGION_OPTIONS   = ['Pan-India', 'Metro Cities', 'Tier 2 & 3', 'International'];
-
-const WORKFLOW_OUTPUTS: Record<string, string[]> = {
-  Webhook:    ['Endpoint validated', 'Payload schema verified', 'Auth token confirmed'],
-  'CSV Upload': ['File parsed (847 rows)', 'Address columns mapped', 'Duplicates removed: 3'],
-  'LMS Event': ['Event: course_completed', 'Learner ID resolved', 'Cohort segment matched'],
-  'HRMS Event': ['Event: employee_onboarded', 'Department tag: Engineering', 'Tier: IC-3 mapped'],
-};
-
-function WorkflowExplorer() {
-  const [trigger,  setTrigger]  = useState('Webhook');
-  const [product,  setProduct]  = useState('Full Onboarding Kit');
-  const [qty,      setQty]      = useState('50–500');
-  const [region,   setRegion]   = useState('Pan-India');
-  const [animKey,  setAnimKey]  = useState(0);
-
-  const trigger_ = (v: string, setter: (s: string) => void) => { setter(v); setAnimKey(k => k + 1); };
-
-  const STEPS = [
-    { label: 'Address Validation', desc: `${qty} addresses verified via postal DB` },
-    { label: 'Inventory Reserved', desc: `${product} — ${qty} units allocated` },
-    { label: 'Print Job Created',  desc: `Job #${Math.floor(Math.random() * 9000) + 1000} → print queue` },
-    { label: 'Shipment Created',   desc: `${region} shipping matrix applied` },
-    { label: 'Tracking Synced',    desc: 'AWB codes generated & emailed' },
-    { label: 'Webhook Response',   desc: '200 OK — delivery window: 3–5 days' },
-  ];
-
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,340px),1fr))', gap: 24, alignItems: 'start' }}>
-
-      {/* Left: Controls */}
-      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 24, padding: 28 }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: C.text3, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 20 }}>
-          Configure Workflow
-        </div>
-
-        {[
-          { label: 'Trigger Source', options: TRIGGER_OPTIONS, value: trigger,  set: (v: string) => trigger_(v, setTrigger) },
-          { label: 'Product Type',   options: PRODUCT_OPTIONS, value: product,  set: (v: string) => trigger_(v, setProduct) },
-          { label: 'Quantity',       options: QTY_OPTIONS,     value: qty,      set: (v: string) => trigger_(v, setQty) },
-          { label: 'Delivery Region',options: REGION_OPTIONS,  value: region,   set: (v: string) => trigger_(v, setRegion) },
-        ].map(ctrl => (
-          <div key={ctrl.label} style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: C.text2, fontFamily: 'var(--font-display)', marginBottom: 8 }}>{ctrl.label}</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {ctrl.options.map(opt => (
-                <button key={opt} onClick={() => ctrl.set(opt)} style={{
-                  padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600,
-                  fontFamily: 'var(--font-mono)', cursor: 'pointer', transition: 'all 0.15s',
-                  background: ctrl.value === opt ? C.aSoft : C.bg,
-                  border: `1px solid ${ctrl.value === opt ? C.aBorder : C.border}`,
-                  color: ctrl.value === opt ? C.accent : C.text2,
-                }}>
-                  {opt}
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
-
-        {/* Trigger source outputs */}
-        <div style={{ marginTop: 8, padding: 16, background: '#18181B', borderRadius: 12, fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-          <div style={{ color: '#52525B', marginBottom: 8 }}>// {trigger} payload</div>
-          {(WORKFLOW_OUTPUTS[trigger] || []).map((line, i) => (
-            <div key={i} style={{ color: '#A1A1AA', marginBottom: 4 }}>→ {line}</div>
-          ))}
-        </div>
-      </div>
-
-      {/* Right: Live workflow output */}
-      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 24, padding: 28 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: C.text3, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            Live Execution
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.success, animation: 'pulse-dot 2s infinite' }} />
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: C.success }}>ACTIVE</span>
-          </div>
-        </div>
-
-        <AnimatePresence mode="wait">
-          <motion.div key={animKey} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-            {STEPS.map((step, i) => (
-              <motion.div
-                key={step.label}
-                initial={{ opacity: 0, x: 12 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: i * 0.08 }}
-                style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 14 }}
-              >
-                <div style={{ width: 20, height: 20, borderRadius: '50%', background: `${C.success}15`, border: `1px solid ${C.success}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
-                  <CheckCircle size={11} color={C.success} />
-                </div>
-                <div>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: C.text1, marginBottom: 1 }}>{step.label}</div>
-                  <div style={{ fontSize: 11, color: C.text3, fontFamily: 'var(--font-mono)' }}>{step.desc}</div>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </AnimatePresence>
-
-        <div style={{ marginTop: 16, padding: '12px 14px', background: `${C.success}08`, border: `1px solid ${C.success}18`, borderRadius: 10 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: C.success, fontWeight: 600 }}>
-            ✓ Workflow completed · 247ms · 0 errors
-          </div>
-        </div>
+          animate={inView ? { width: `${value}%` } : {}}
+          transition={{ duration: 0.9, delay, ease: 'easeOut' }}
+          style={{ height: '100%', background: color, borderRadius: 999 }} />
       </div>
     </div>
   );
 }
 
-/* ─── PAGE ───────────────────────────────────────────────────── */
+/* ─── Career Dashboard widget ──────────────────────────────────── */
+function CareerDashboard() {
+  const [activeTab, setActiveTab] = useState<'overview' | 'resume' | 'interviews'>('overview');
+  const tabs = [
+    { id: 'overview',   label: 'Overview' },
+    { id: 'resume',     label: 'Resume' },
+    { id: 'interviews', label: 'Interviews' },
+  ] as const;
+
+  return (
+    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 24, overflow: 'hidden', boxShadow: '0 32px 64px rgba(24,24,27,0.12)' }}>
+
+      {/* Dashboard header */}
+      <div style={{ padding: '16px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: C.elev }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 7, background: '#18181B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 12, color: '#F97316' }}>J</div>
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, color: C.t1 }}>Career Dashboard</span>
+        </div>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <div style={{ width: 7, height: 7, borderRadius: '50%', background: C.green, animation: 'pulse-dot 2s infinite' }} />
+          <span style={{ fontSize: 10, color: C.green, fontFamily: 'var(--font-mono)', fontWeight: 600 }}>ACTIVE</span>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ padding: '12px 20px 0', display: 'flex', gap: 4, borderBottom: `1px solid ${C.border}` }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+            padding: '7px 14px', borderRadius: '8px 8px 0 0', border: 'none', cursor: 'pointer',
+            fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12,
+            background: activeTab === t.id ? C.surface : 'transparent',
+            color: activeTab === t.id ? C.t1 : C.t3,
+            borderBottom: activeTab === t.id ? `2px solid ${C.orange}` : '2px solid transparent',
+            transition: 'all 0.15s',
+          }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div style={{ padding: 20 }}>
+        <AnimatePresence mode="wait">
+          {activeTab === 'overview' && (
+            <motion.div key="overview" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+              {/* Score rings */}
+              <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 20, padding: '16px 0', background: C.bg, borderRadius: 16 }}>
+                <ScoreRing score={84} color={C.orange} label="Resume Score" />
+                <ScoreRing score={72} color={C.purple} label="Interview Ready" />
+                <ScoreRing score={91} color={C.green}  label="ATS Score" />
+              </div>
+
+              {/* Application tracker */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: C.t3, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Application Tracker</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                  {[
+                    { label: 'Applied', count: 12, color: C.blue },
+                    { label: 'Screening', count: 5, color: C.orange },
+                    { label: 'Interview', count: 3, color: C.purple },
+                    { label: 'Offers', count: 1, color: C.green },
+                  ].map(s => (
+                    <div key={s.label} style={{ padding: '10px 8px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, textAlign: 'center' }}>
+                      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 18, color: s.color }}>{s.count}</div>
+                      <div style={{ fontSize: 9, color: C.t3, fontFamily: 'var(--font-mono)', marginTop: 2 }}>{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Next action */}
+              <div style={{ padding: '10px 14px', background: C.oSoft, border: `1px solid ${C.oBorder}`, borderRadius: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Target size={14} color={C.orange} />
+                <span style={{ fontSize: 12, color: C.oHover, fontFamily: 'var(--font-display)', fontWeight: 600 }}>Next: Practice for Google SWE Mock Interview</span>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'resume' && (
+            <motion.div key="resume" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: C.t1 }}>Resume Analysis</div>
+                <span style={{ padding: '3px 10px', background: C.oSoft, border: `1px solid ${C.oBorder}`, borderRadius: 100, fontSize: 10, color: C.orange, fontFamily: 'var(--font-mono)', fontWeight: 600 }}>84/100</span>
+              </div>
+              <ProgressBar label="Action Verbs"      value={92} color={C.green}  delay={0.0} />
+              <ProgressBar label="Quantified Impact" value={74} color={C.orange} delay={0.1} />
+              <ProgressBar label="ATS Keywords"      value={88} color={C.blue}   delay={0.2} />
+              <ProgressBar label="Formatting"        value={96} color={C.purple} delay={0.3} />
+              <div style={{ marginTop: 12, padding: '10px 14px', background: C.bg, borderRadius: 10, fontSize: 12, color: C.t2, lineHeight: 1.5 }}>
+                <span style={{ color: C.orange, fontWeight: 700 }}>AI Suggestion: </span>
+                Add metrics to your last 2 bullet points. "Led team" → "Led team of 5, reduced deployment time by 40%"
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'interviews' && (
+            <motion.div key="interviews" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: C.t1, marginBottom: 14 }}>Mock Interviews</div>
+              {[
+                { company: 'Google SWE', status: 'Scheduled', time: 'Tomorrow 3pm', color: C.blue },
+                { company: 'Swiggy PM', status: 'Completed', time: 'Score: 78/100', color: C.green },
+                { company: 'Zomato DS', status: 'In Progress', time: '2 rounds done', color: C.orange },
+              ].map(item => (
+                <div key={item.company} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: C.bg, borderRadius: 10, marginBottom: 8 }}>
+                  <div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: C.t1 }}>{item.company}</div>
+                    <div style={{ fontSize: 11, color: C.t3, fontFamily: 'var(--font-mono)', marginTop: 2 }}>{item.time}</div>
+                  </div>
+                  <span style={{ padding: '3px 10px', borderRadius: 100, fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, background: `${item.color}12`, color: item.color, border: `1px solid ${item.color}22` }}>{item.status}</span>
+                </div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Mentor card ──────────────────────────────────────────────── */
+function MentorCard({ name, role, company, rating, sessions, tag, tagColor }: { name: string; role: string; company: string; rating: number; sessions: number; tag: string; tagColor: string }) {
+  return (
+    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: '16px', transition: 'all 0.25s cubic-bezier(0.34,1.56,0.64,1)', cursor: 'pointer' }}
+      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 32px rgba(24,24,27,0.10)'; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'none'; (e.currentTarget as HTMLElement).style.boxShadow = 'none'; }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
+        <div style={{ width: 42, height: 42, borderRadius: '50%', background: `linear-gradient(135deg, ${tagColor}30, ${tagColor}60)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 16, color: tagColor, flexShrink: 0 }}>
+          {name[0]}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, color: C.t1, marginBottom: 1 }}>{name}</div>
+          <div style={{ fontSize: 11, color: C.t3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{role} · {company}</div>
+        </div>
+        <span style={{ padding: '2px 8px', borderRadius: 100, fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 600, background: `${tagColor}12`, color: tagColor, border: `1px solid ${tagColor}22`, flexShrink: 0 }}>{tag}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          {[...Array(5)].map((_, i) => <Star key={i} size={10} fill={i < rating ? '#F97316' : 'none'} color={i < rating ? '#F97316' : C.t4} />)}
+          <span style={{ fontSize: 10, color: C.t3, marginLeft: 3, fontFamily: 'var(--font-mono)' }}>{rating}.0</span>
+        </div>
+        <span style={{ fontSize: 10, color: C.t4 }}>·</span>
+        <span style={{ fontSize: 10, color: C.t3, fontFamily: 'var(--font-mono)' }}>{sessions} sessions</span>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Journey step ─────────────────────────────────────────────── */
+function JourneyStep({ step, label, desc, icon: Icon, active, color }: { step: number; label: string; desc: string; icon: React.ElementType; active?: boolean; color: string }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, flex: 1 }}>
+      <motion.div
+        animate={active ? { scale: [1, 1.08, 1] } : {}}
+        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        style={{
+          width: 56, height: 56, borderRadius: 16,
+          background: active ? color : C.surface,
+          border: `2px solid ${active ? color : C.border}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: active ? `0 8px 24px ${color}25` : 'none',
+          transition: 'all 0.3s',
+        }}>
+        <Icon size={22} color={active ? '#fff' : C.t3} />
+      </motion.div>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, color: active ? C.t1 : C.t3, marginBottom: 3 }}>{label}</div>
+        <div style={{ fontSize: 11, color: C.t4, lineHeight: 1.4, maxWidth: 90 }}>{desc}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Product card ─────────────────────────────────────────────── */
+function ProductCard({ title, subtitle, desc, icon: Icon, color, ctaLabel, ctaHref, features, preview }: {
+  title: string; subtitle: string; desc: string; icon: React.ElementType;
+  color: string; ctaLabel: string; ctaHref: string; features: string[]; preview: React.ReactNode;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: C.surface, border: `1px solid ${hovered ? color + '30' : C.border}`,
+        borderRadius: 24, overflow: 'hidden',
+        boxShadow: hovered ? `0 20px 48px ${color}15` : C.surface,
+        transition: 'all 0.3s cubic-bezier(0.34,1.56,0.64,1)',
+        transform: hovered ? 'translateY(-6px)' : 'none',
+      }}>
+      {/* Header */}
+      <div style={{ padding: '28px 28px 20px', background: `linear-gradient(145deg, ${color}08, transparent)` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: `${color}15`, border: `1px solid ${color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon size={20} color={color} />
+          </div>
+          <div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18, color: C.t1, letterSpacing: '-0.02em' }}>{title}</div>
+            <div style={{ fontSize: 12, color: C.t3, fontFamily: 'var(--font-mono)' }}>{subtitle}</div>
+          </div>
+        </div>
+        <p style={{ fontSize: 14, color: C.t2, lineHeight: 1.65, margin: 0 }}>{desc}</p>
+      </div>
+
+      {/* Preview */}
+      <div style={{ margin: '0 16px', borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.border}`, background: C.bg }}>
+        {preview}
+      </div>
+
+      {/* Features */}
+      <div style={{ padding: '20px 28px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 20 }}>
+          {features.map((f, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <CheckCircle size={13} color={color} style={{ flexShrink: 0, marginTop: 2 }} />
+              <span style={{ fontSize: 13, color: C.t2, lineHeight: 1.5 }}>{f}</span>
+            </div>
+          ))}
+        </div>
+        <a href={ctaHref} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '11px 22px', borderRadius: 100, fontSize: 13, fontWeight: 700,
+          fontFamily: 'var(--font-display)', textDecoration: 'none',
+          background: color, color: '#fff',
+          boxShadow: `0 4px 16px ${color}30`,
+          transition: 'all 0.2s',
+        }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'none'; }}>
+          {ctaLabel} <ArrowRight size={13} />
+        </a>
+      </div>
+    </div>
+  );
+}
+
+/* ─── PREP preview widget ──────────────────────────────────────── */
+function PrepPreview() {
+  return (
+    <div style={{ padding: 16 }}>
+      <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: C.t3, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>AI Resume Analysis</div>
+      <ProgressBar label="Work Experience Impact" value={88} color={C.orange} delay={0} />
+      <ProgressBar label="ATS Compatibility"      value={94} color={C.green}  delay={0.1} />
+      <ProgressBar label="Keyword Density"        value={76} color={C.blue}   delay={0.2} />
+      <div style={{ marginTop: 8, padding: '8px 12px', background: C.oSoft, border: `1px solid ${C.oBorder}`, borderRadius: 8, fontSize: 11, color: C.oHover, fontFamily: 'var(--font-display)', fontWeight: 600 }}>
+        ✦ 3 improvements suggested
+      </div>
+    </div>
+  );
+}
+
+/* ─── MENTOR preview widget ────────────────────────────────────── */
+function MentorPreview() {
+  return (
+    <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {[
+        { name: 'Rahul S.', role: 'PM', company: 'Google',    rating: 5, sessions: 48, tag: 'PM',  tagColor: C.purple },
+        { name: 'Priya K.', role: 'SWE', company: 'Microsoft', rating: 5, sessions: 92, tag: 'SWE', tagColor: C.blue },
+      ].map(m => (
+        <MentorCard key={m.name} {...m} />
+      ))}
+    </div>
+  );
+}
+
+/* ─── MERCH preview widget ─────────────────────────────────────── */
+function MerchPreview() {
+  return (
+    <div style={{ padding: 14 }}>
+      <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: C.t3, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Cohort Kits</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        {[
+          { label: 'Welcome Kit',       price: '₹850',  tag: 'Best Seller' },
+          { label: 'Graduation Bundle', price: '₹1,200', tag: 'Popular' },
+          { label: 'Hackathon Set',     price: '₹650',  tag: 'New' },
+          { label: 'Cohort Tee',        price: '₹350',  tag: 'Custom' },
+        ].map(item => (
+          <div key={item.label} style={{ padding: '10px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.t1, fontFamily: 'var(--font-display)', marginBottom: 2 }}>{item.label}</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: C.green, fontFamily: 'var(--font-mono)' }}>{item.price}</span>
+              <span style={{ fontSize: 9, color: C.orange, fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{item.tag}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── PAGE ────────────────────────────────────────────────────── */
 export default function HomePage() {
+  const [journeyActive, setJourneyActive] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setJourneyActive(v => (v + 1) % 6), 1800);
+    return () => clearInterval(t);
+  }, []);
+
   return (
     <div style={{ background: C.canvas, minHeight: '100vh', overflowX: 'hidden' }}>
 
-      {/* ── HERO ───────────────────────────────────────────────── */}
-      <section style={{ maxWidth: 1440, margin: '0 auto', padding: 'clamp(96px,12vw,160px) 32px clamp(80px,10vw,120px)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,480px),1fr))', gap: '64px 80px', alignItems: 'center' }}>
-
-        {/* Left */}
-        <div>
-          <div className="animate-fade-up" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: C.aSoft, border: `1px solid ${C.aBorder}`, borderRadius: 100, padding: '6px 14px', marginBottom: 28 }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.accent, animation: 'pulse-dot 2s infinite' }} />
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: C.accent, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              Merchandise Infrastructure
-            </span>
-          </div>
-
-          <h1 className="animate-fade-up-1" style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(52px, 6.5vw, 88px)', fontWeight: 900, lineHeight: 1.0, letterSpacing: '-0.04em', color: C.text1, marginBottom: 24 }}>
-            Merchandise<br />Operations.<br />
-            <span style={{ color: C.accent }}>Automated.</span>
-          </h1>
-
-          <p className="animate-fade-up-2" style={{ fontSize: 'clamp(16px,1.5vw,19px)', color: C.text2, lineHeight: 1.7, maxWidth: 480, marginBottom: 36 }}>
-            Automate onboarding kits, cohort merchandise, swag fulfillment, and inventory workflows through APIs, webhooks, and intelligent logistics infrastructure.
-          </p>
-
-          <div className="animate-fade-up-3" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 52 }}>
-            <a href="#cta" className="btn-primary" style={{ fontSize: 16, padding: '15px 36px' }}>
-              Book Demo
-              <ArrowRight size={16} />
-            </a>
-            <a href="#workflow" className="btn-ghost" style={{ fontSize: 16, padding: '15px 32px' }}>
-              View Live Workflow
-            </a>
-          </div>
-
-          {/* Stats row */}
-          <div className="animate-fade-up-4" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px 32px' }}>
-            {[
-              { value: 250000, suffix: '+', label: 'Kits Fulfilled' },
-              { value: 99.9,   suffix: '%', label: 'API Uptime'    },
-              { value: 180,    suffix: '+', label: 'Integrations'  },
-            ].map(s => (
-              <div key={s.label}>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(22px,2.5vw,30px)', color: C.text1, letterSpacing: '-0.03em', lineHeight: 1 }}>
-                  <Counter to={s.value} suffix={s.suffix} />
-                </div>
-                <div style={{ fontSize: 12, color: C.text3, marginTop: 3, fontFamily: 'var(--font-mono)' }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Right — workflow visualization */}
-        <div className="animate-fade-up-2" style={{ minWidth: 0 }}>
-          <WorkflowVisualization />
-        </div>
-      </section>
-
-      {/* ── TRUST BAR ──────────────────────────────────────────── */}
-      <section style={{ background: C.surface, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
-        <div style={{ maxWidth: 1440, margin: '0 auto', padding: '40px 32px' }}>
-          <div style={{ textAlign: 'center', marginBottom: 28 }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: C.text3, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              Trusted by India's fastest-growing EdTech & Enterprise teams
-            </span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '8px 24px' }}>
-            {['PhysicsWallah', 'upGrad', 'Scaler', 'Newton School', 'Unacademy', 'Masai School', 'Coding Ninjas', 'Internshala'].map(org => (
-              <div key={org} style={{ padding: '8px 18px', borderRadius: 8, background: C.bg, border: `1px solid ${C.border}`, fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: C.text3, whiteSpace: 'nowrap' }}>
-                {org}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── METRICS ────────────────────────────────────────────── */}
-      <section style={{ maxWidth: 1440, margin: '0 auto', padding: 'clamp(80px,8vw,140px) 32px' }}>
-        <Reveal>
-          <div style={{ textAlign: 'center', marginBottom: 64 }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: C.text3, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              Operations at Scale
-            </span>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(32px,4vw,56px)', color: C.text1, marginTop: 12 }}>
-              The numbers that matter.
-            </h2>
-          </div>
-        </Reveal>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,200px),1fr))', gap: '32px 24px' }}>
-          {[
-            { value: 250000, suffix: '+', label: 'Orders Fulfilled',      sub: 'Across all channels' },
-            { value: 4200000, suffix: '+', label: 'Automations Executed', sub: 'Workflow runs this year' },
-            { value: 240000, suffix: '+', label: 'Shipments Delivered',   sub: 'Pan-India & international' },
-            { value: 99.9,  suffix: '%',  label: 'API Uptime SLA',        sub: 'Last 12 months' },
-            { value: 620,   suffix: '+',  label: 'Active Customers',      sub: 'EdTech, enterprise, D2C' },
-          ].map((s, i) => (
-            <Reveal key={s.label} delay={i * 0.08}>
-              <div style={{ textAlign: 'center', padding: '28px 20px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 20 }}>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(32px,3.5vw,48px)', color: C.text1, letterSpacing: '-0.04em', lineHeight: 1 }}>
-                  <Counter to={s.value} suffix={s.suffix} />
-                </div>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: C.text1, marginTop: 10, marginBottom: 4 }}>{s.label}</div>
-                <div style={{ fontSize: 12, color: C.text3, fontFamily: 'var(--font-mono)' }}>{s.sub}</div>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </section>
-
-      {/* ── WORKFLOW EXPLORER ──────────────────────────────────── */}
-      <section id="workflow" style={{ background: C.bg, padding: 'clamp(80px,8vw,140px) 0' }}>
-        <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 32px' }}>
-          <Reveal>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, marginBottom: 56 }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: C.text3, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                Interactive Platform
-              </span>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(32px,4vw,56px)', color: C.text1, maxWidth: 600, lineHeight: 1.05 }}>
-                Configure a workflow.<br />Watch it run live.
-              </h2>
-              <p style={{ fontSize: 18, color: C.text2, maxWidth: 520, lineHeight: 1.6 }}>
-                Select your trigger, product, quantity, and region. The execution graph updates in real time — every action animated, every step traceable.
-              </p>
-            </div>
-          </Reveal>
-          <Reveal delay={0.1}>
-            <WorkflowExplorer />
-          </Reveal>
-        </div>
-      </section>
-
-      {/* ── PLATFORM DASHBOARD ─────────────────────────────────── */}
-      <section id="platform" style={{ maxWidth: 1440, margin: '0 auto', padding: 'clamp(80px,8vw,140px) 32px' }}>
-        <Reveal>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 56 }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: C.text3, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              Operations Dashboard
-            </span>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(32px,4vw,56px)', color: C.text1, maxWidth: 640, lineHeight: 1.05 }}>
-              Everything in one command center.
-            </h2>
-          </div>
-        </Reveal>
-
-        {/* Bento grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,320px),1fr))', gap: 16, gridAutoRows: 'minmax(220px, auto)' }}>
-          <Reveal delay={0}><BentoCard title="Inventory Intelligence" desc="Real-time SKU availability, reorder triggers, warehouse allocation, and low-stock alerts across all fulfillment centers." icon={Package} color="#F97316" large>
-            <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              {[['T-Shirts', '4,820 units', C.success], ['Hoodies', '1,240 units', C.warning], ['Notebooks', '8,100 units', C.success], ['Caps', '320 units', '#EF4444']].map(([sku, qty, col]) => (
-                <div key={sku as string} style={{ padding: '10px 12px', background: C.bg, borderRadius: 10, border: `1px solid ${C.border}` }}>
-                  <div style={{ fontSize: 11, color: C.text3, fontFamily: 'var(--font-mono)', marginBottom: 2 }}>{sku as string}</div>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: col as string }}>{qty as string}</div>
-                </div>
-              ))}
-            </div>
-          </BentoCard></Reveal>
-
-          <Reveal delay={0.05}><BentoCard title="Shipment Tracking" desc="End-to-end visibility from print job creation to last-mile delivery with carrier-agnostic AWB tracking." icon={Truck} color="#3B82F6" /></Reveal>
-
-          <Reveal delay={0.10}><BentoCard title="Address Verification" desc="Geocoding, postal DB matching, and AI-powered address normalization before dispatch. Zero failed deliveries." icon={Globe} color="#8B5CF6" /></Reveal>
-
-          <Reveal delay={0.15}><BentoCard title="Workflow Monitoring" desc="Real-time execution logs, failure alerts, retry policies, and SLA dashboards for every automation pipeline." icon={BarChart3} color="#10B981" /></Reveal>
-
-          <Reveal delay={0.20}><BentoCard title="API & Webhook Events" desc="REST APIs, GraphQL, and webhooks for every trigger point. Idempotent endpoints, rate-limit headers, signed payloads." icon={Webhook} color="#F59E0B" /></Reveal>
-
-          <Reveal delay={0.25}><BentoCard title="Cohort Management" desc="Batch-process thousands of recipients across cohorts, departments, or geographic segments from a single API call." icon={Users} color="#EC4899" /></Reveal>
-
-          <Reveal delay={0.30}><BentoCard title="Batch Processing" desc="Queue 100,000+ kit orders asynchronously. Priority lanes, backpressure handling, and dead-letter queues included." icon={GitBranch} color="#06B6D4" large /></Reveal>
-
-          <Reveal delay={0.35}><BentoCard title="Analytics" desc="Operational metrics, fulfillment SLAs, per-cohort cost breakdowns, and exportable reports in CSV or JSON." icon={BarChart3} color="#16A34A" /></Reveal>
-        </div>
-      </section>
-
-      {/* ── INTEGRATIONS ───────────────────────────────────────── */}
-      <section id="integrations" style={{ background: C.bg, padding: 'clamp(80px,8vw,140px) 0', overflow: 'hidden' }}>
-        <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 32px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,420px),1fr))', gap: '64px 80px', alignItems: 'center' }}>
-
-            {/* Left */}
-            <Reveal>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: C.text3, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                Ecosystem
-              </span>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(32px,4vw,52px)', color: C.text1, marginTop: 12, marginBottom: 20, lineHeight: 1.05 }}>
-                Plugs into your<br />existing stack.
-              </h2>
-              <p style={{ fontSize: 18, color: C.text2, lineHeight: 1.7, marginBottom: 32 }}>
-                Jobr connects to your CRM, LMS, HRMS, and internal tools via REST APIs, webhooks, and native integrations — no middleware required.
-              </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {['Salesforce', 'HubSpot', 'Moodle', 'Canvas LMS', 'Workday', 'Zoho HRMS', 'Zapier', 'n8n', 'Slack', 'Notion'].map(tool => (
-                  <span key={tool} style={{ padding: '6px 14px', borderRadius: 8, background: C.surface, border: `1px solid ${C.border}`, fontSize: 12, fontWeight: 600, color: C.text2, fontFamily: 'var(--font-mono)' }}>
-                    {tool}
-                  </span>
-                ))}
-              </div>
-            </Reveal>
-
-            {/* Right — orbit diagram */}
-            <Reveal delay={0.15}>
-              <div style={{ position: 'relative', width: '100%', paddingTop: '100%', maxWidth: 420, margin: '0 auto' }}>
-                <div style={{ position: 'absolute', inset: 0 }}>
-                  {/* Center */}
-                  <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 72, height: 72, background: '#18181B', borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 32px rgba(24,24,27,0.20)' }}>
-                    <span style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 22, color: '#F97316' }}>J</span>
-                  </div>
-                  {/* Connection lines */}
-                  <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
-                    {[['50%','8%'],['92%','30%'],['88%','72%'],['50%','92%'],['12%','72%'],['8%','30%']].map(([x, y], i) => (
-                      <line key={i} x1="50%" y1="50%" x2={x} y2={y} stroke="#E7E5E4" strokeWidth="1.5" strokeDasharray="4 4" />
-                    ))}
-                  </svg>
-                  {/* Orbs */}
-                  <IntegrationOrb label="CRM"      icon={Database} color="#3B82F6" x="50%"  y="8%"  />
-                  <IntegrationOrb label="LMS"      icon={Users}    color="#8B5CF6" x="92%"  y="30%" />
-                  <IntegrationOrb label="HRMS"     icon={Shield}   color="#10B981" x="88%"  y="72%" />
-                  <IntegrationOrb label="Webhooks" icon={Webhook}  color="#F97316" x="50%"  y="92%" />
-                  <IntegrationOrb label="Internal" icon={GitBranch}color="#F59E0B" x="12%"  y="72%" />
-                  <IntegrationOrb label="Database" icon={Database} color="#EC4899" x="8%"   y="30%" />
-                </div>
-              </div>
-            </Reveal>
-          </div>
-        </div>
-      </section>
-
-      {/* ── SCALE SECTION ──────────────────────────────────────── */}
-      <section style={{ maxWidth: 1440, margin: '0 auto', padding: 'clamp(80px,8vw,140px) 32px' }}>
-        <Reveal>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,420px),1fr))', gap: '64px 80px', alignItems: 'center' }}>
+      {/* ── HERO ──────────────────────────────────────────────── */}
+      <section style={{ paddingTop: 'clamp(96px,12vw,148px)', paddingBottom: 'clamp(60px,8vw,100px)', position: 'relative', overflow: 'hidden' }}>
+        {/* Subtle background wash */}
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(249,115,22,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <W>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,460px),1fr))', gap: '56px 72px', alignItems: 'center' }}>
 
             {/* Left */}
             <div>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: C.text3, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                Elastic Scale
-              </span>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(32px,4vw,52px)', color: C.text1, marginTop: 12, marginBottom: 20, lineHeight: 1.05 }}>
-                10 kits or 100,000.<br />Same workflow.
-              </h2>
-              <p style={{ fontSize: 18, color: C.text2, lineHeight: 1.7 }}>
-                The operational pipeline is identical whether you're onboarding a single cohort or scaling across 50 cities simultaneously. Complexity stays with us.
+              <div className="animate-fade-up" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: C.oSoft, border: `1px solid ${C.oBorder}`, borderRadius: 100, padding: '6px 14px', marginBottom: 24 }}>
+                <Sparkles size={12} color={C.orange} />
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: C.oHover, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+                  Career Operating System
+                </span>
+              </div>
+
+              <h1 className="animate-fade-up-1" style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(44px,6vw,80px)', fontWeight: 900, lineHeight: 1.0, letterSpacing: '-0.04em', marginBottom: 20, color: C.t1 }}>
+                Your Career.<br />
+                <span style={{ color: C.orange }}>One Operating<br />System.</span>
+              </h1>
+
+              <p className="animate-fade-up-2" style={{ fontSize: 'clamp(16px,1.4vw,18px)', color: C.t2, lineHeight: 1.75, maxWidth: 460, marginBottom: 32 }}>
+                Prepare for interviews, improve your resume, connect with mentors, and grow your career — all from one platform built for students.
               </p>
+
+              <div className="animate-fade-up-3" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 48 }}>
+                <a href="/dashboard" className="btn-primary" style={{ fontSize: 16, padding: '15px 36px' }}>
+                  Get Started <ArrowRight size={16} />
+                </a>
+                <a href="#products" className="btn-ghost" style={{ fontSize: 16, padding: '15px 30px' }}>
+                  Explore Features
+                </a>
+              </div>
+
+              {/* Stats */}
+              <div className="animate-fade-up-4" style={{ display: 'flex', flexWrap: 'wrap', gap: '14px 28px' }}>
+                {[
+                  { to: 500,  suffix: '+',  label: 'Resumes Optimized' },
+                  { to: 8,    suffix: '+',  label: 'Verified Mentors'  },
+                  { to: 98,   suffix: '%',  label: 'Satisfaction Rate' },
+                ].map(s => (
+                  <div key={s.label}>
+                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(22px,2.5vw,30px)', color: C.t1, letterSpacing: '-0.03em', lineHeight: 1 }}>
+                      <Counter to={s.to} suffix={s.suffix} />
+                    </div>
+                    <div style={{ fontSize: 12, color: C.t3, marginTop: 3, fontFamily: 'var(--font-mono)' }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Right: scale bars */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              {[
-                { qty: '10 kits',      pct: '8%',   delay: 0.1  },
-                { qty: '100 kits',     pct: '18%',  delay: 0.2  },
-                { qty: '1,000 kits',   pct: '36%',  delay: 0.3  },
-                { qty: '10,000 kits',  pct: '62%',  delay: 0.4  },
-                { qty: '100,000 kits', pct: '100%', delay: 0.5  },
-              ].map(s => (
-                <ScaleBar key={s.qty} qty={s.qty} label={s.pct} delay={s.delay} />
-              ))}
-              <p style={{ fontSize: 12, color: C.text3, fontFamily: 'var(--font-mono)', marginTop: 8 }}>
-                Bar represents relative batch size. Workflow complexity stays flat.
-              </p>
+            {/* Right — dashboard */}
+            <div className="animate-fade-up-2" style={{ minWidth: 0 }}>
+              <CareerDashboard />
             </div>
           </div>
-        </Reveal>
+        </W>
       </section>
 
-      {/* ── CASE STUDIES ───────────────────────────────────────── */}
-      <section id="case-studies" style={{ background: C.bg, padding: 'clamp(80px,8vw,140px) 0' }}>
-        <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 32px' }}>
+      {/* ── TRUST BAR ─────────────────────────────────────────── */}
+      <section style={{ background: C.surface, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
+        <W style={{ padding: '32px 24px' }}>
+          <div style={{ textAlign: 'center', marginBottom: 20 }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: C.t4, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+              Students from India's top colleges & bootcamps
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '8px 16px' }}>
+            {['IIT Bombay', 'NIT Trichy', 'BITS Pilani', 'Masai School', 'Newton School', 'Scaler Academy', 'IIIT Hyderabad', 'VIT Vellore'].map(c => (
+              <div key={c} style={{ padding: '7px 16px', borderRadius: 8, background: C.bg, border: `1px solid ${C.border}`, fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12, color: C.t3, whiteSpace: 'nowrap' }}>
+                {c}
+              </div>
+            ))}
+          </div>
+        </W>
+      </section>
+
+      {/* ── CAREER JOURNEY ────────────────────────────────────── */}
+      <section style={{ padding: 'clamp(80px,8vw,120px) 0', background: C.bg }}>
+        <W>
           <Reveal>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 56 }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: C.text3, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                Customer Impact
-              </span>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(32px,4vw,56px)', color: C.text1, maxWidth: 600, lineHeight: 1.05 }}>
-                Operational results.<br />Not marketing copy.
+            <div style={{ textAlign: 'center', marginBottom: 56 }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: C.t3, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Career Journey</span>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(28px,4vw,48px)', color: C.t1, marginTop: 12, marginBottom: 12 }}>
+                Jobr supports every stage.
               </h2>
+              <p style={{ fontSize: 17, color: C.t2, maxWidth: 480, margin: '0 auto' }}>
+                From first resume to first offer — one platform guides the whole journey.
+              </p>
+            </div>
+          </Reveal>
+
+          <Reveal delay={0.1}>
+            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 24, padding: 'clamp(24px,4vw,40px)', overflow: 'hidden', position: 'relative' }}>
+              {/* Connector line */}
+              <div style={{ position: 'absolute', top: 76, left: '8%', right: '8%', height: 2, background: `linear-gradient(90deg, ${C.orange}, ${C.purple}, ${C.green})`, opacity: 0.25, borderRadius: 999 }} />
+
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', position: 'relative' }}>
+                {[
+                  { label: 'Resume',     desc: 'Build & score',   icon: FileText,    color: C.orange },
+                  { label: 'Prepare',    desc: 'AI mock tests',   icon: BookOpen,    color: C.blue   },
+                  { label: 'Mentor',     desc: 'Expert sessions', icon: Users,       color: C.purple },
+                  { label: 'Interview',  desc: 'Crack rounds',    icon: MessageSquare, color: '#D97706' },
+                  { label: 'Offer',      desc: 'Land the role',   icon: Award,       color: C.green  },
+                  { label: 'Growth',     desc: 'Keep climbing',   icon: TrendingUp,  color: C.orange },
+                ].map((s, i) => (
+                  <JourneyStep key={s.label} step={i + 1} {...s} active={journeyActive === i} />
+                ))}
+              </div>
+
+              <div style={{ marginTop: 32, padding: '14px 20px', background: C.bg, borderRadius: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.orange, animation: 'pulse-dot 2s infinite' }} />
+                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: C.t2 }}>
+                  Currently highlighted:{' '}
+                  <span style={{ color: C.t1 }}>
+                    {['Resume Building', 'Interview Preparation', 'Mentor Guidance', 'Interview Rounds', 'Offer Landing', 'Career Growth'][journeyActive]}
+                  </span>
+                  {' '}— Jobr helps you with this.
+                </span>
+              </div>
+            </div>
+          </Reveal>
+        </W>
+      </section>
+
+      {/* ── PRODUCTS ──────────────────────────────────────────── */}
+      <section id="products" style={{ padding: 'clamp(80px,8vw,120px) 0' }}>
+        <W>
+          <Reveal>
+            <div style={{ textAlign: 'center', marginBottom: 56 }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: C.t3, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Product Ecosystem</span>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(28px,4vw,52px)', color: C.t1, marginTop: 12, marginBottom: 12 }}>
+                Three products.<br />One mission.
+              </h2>
+              <p style={{ fontSize: 17, color: C.t2, maxWidth: 440, margin: '0 auto' }}>
+                Each tool is purpose-built to help you become job-ready, faster.
+              </p>
             </div>
           </Reveal>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,360px),1fr))', gap: 20 }}>
+            <Reveal delay={0}>
+              <ProductCard
+                title="Jobr Prep"
+                subtitle="AI Career Preparation"
+                desc="Not just a CV rewriter. Prep.Jobr tracks applications, runs AI mock interviews tailored to the JD, and builds your personal career roadmap."
+                icon={FileText}
+                color={C.orange}
+                ctaLabel="Start Prepping Free"
+                ctaHref="/dashboard"
+                features={[
+                  "AI rewrites every bullet with Google's XYZ formula",
+                  'Full application tracker across all rounds',
+                  'Mock interviews tailored to specific JDs',
+                  'Skill gap analysis with curated learning paths',
+                ]}
+                preview={<PrepPreview />}
+              />
+            </Reveal>
+
+            <Reveal delay={0.08}>
+              <ProductCard
+                title="Jobr Mentor"
+                subtitle="Expert Guidance"
+                desc="Browse verified domain experts across PM, SWE, Data, Design and more. Book sessions with credits. Pay only after delivery is confirmed."
+                icon={Users}
+                color={C.purple}
+                ctaLabel="Browse Mentors"
+                ctaHref="/mentor"
+                features={[
+                  '8+ verified mentors across all top domains',
+                  'Escrow system — credits released on delivery',
+                  '24h auto-release protects both parties',
+                  'Dispute resolution handled by Jobr',
+                ]}
+                preview={<MentorPreview />}
+              />
+            </Reveal>
+
+            <Reveal delay={0.16}>
+              <ProductCard
+                title="Jobr Merch"
+                subtitle="Community & Identity"
+                desc="Custom cohort merchandise, welcome kits, and graduation bundles. No minimums, WhatsApp ordering, and Pan-India delivery."
+                icon={ShoppingBag}
+                color={C.green}
+                ctaLabel="Browse Catalogue"
+                ctaHref="/merch"
+                features={[
+                  'T-shirts, hoodies, caps, mugs, tote bags & more',
+                  'Bulk orders from 10 units — cohort & event ready',
+                  'Upload design → WhatsApp confirm → delivered',
+                  'Edtech cohort kits, hackathon swag, grad merch',
+                ]}
+                preview={<MerchPreview />}
+              />
+            </Reveal>
+          </div>
+        </W>
+      </section>
+
+      {/* ── PREP SHOWCASE ─────────────────────────────────────── */}
+      <section style={{ background: C.bg, padding: 'clamp(80px,8vw,120px) 0' }}>
+        <W>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,420px),1fr))', gap: '56px 72px', alignItems: 'center' }}>
+            <Reveal>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: C.oHover, letterSpacing: '0.1em', textTransform: 'uppercase', background: C.oSoft, border: `1px solid ${C.oBorder}`, padding: '4px 10px', borderRadius: 100, display: 'inline-block', marginBottom: 16 }}>Jobr Prep</span>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(28px,3.5vw,48px)', color: C.t1, marginBottom: 20, lineHeight: 1.05 }}>
+                Your resume, rewritten<br />by AI. Cracked by you.
+              </h2>
+              <p style={{ fontSize: 17, color: C.t2, lineHeight: 1.75, marginBottom: 28, maxWidth: 440 }}>
+                Paste your CV and a job description. In 30 seconds, every bullet is rewritten using Google's XYZ formula — quantified, impactful, ATS-ready.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
+                {[
+                  { icon: Zap,     label: 'Instant AI rewrite', desc: '30-second turnaround, zero data stored' },
+                  { icon: Target,  label: 'JD-matched content', desc: 'Keywords extracted from the actual job post' },
+                  { icon: BarChart2, label: 'Live score tracking', desc: 'Resume score improves with every edit' },
+                ].map(f => (
+                  <div key={f.label} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 9, background: C.oSoft, border: `1px solid ${C.oBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <f.icon size={15} color={C.orange} />
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: C.t1, marginBottom: 1 }}>{f.label}</div>
+                      <div style={{ fontSize: 12, color: C.t3 }}>{f.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <a href="/dashboard" className="btn-primary">Start Prepping Free <ArrowRight size={15} /></a>
+            </Reveal>
+
+            {/* Right: Resume scoring mockup */}
+            <Reveal delay={0.15}>
+              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 24, padding: 28, boxShadow: '0 20px 48px rgba(24,24,27,0.08)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: C.t1 }}>Resume Score</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: C.t3 }}>Nitish_CV_v3.pdf</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginBottom: 24 }}>
+                  <ScoreRing score={84} color={C.orange} label="Overall" />
+                  <ScoreRing score={91} color={C.green}  label="ATS" />
+                  <ScoreRing score={78} color={C.blue}   label="Impact" />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <ProgressBar label="Work Experience"  value={88} color={C.orange} delay={0} />
+                  <ProgressBar label="Skills Section"   value={75} color={C.purple} delay={0.1} />
+                  <ProgressBar label="Education"        value={96} color={C.green}  delay={0.2} />
+                  <ProgressBar label="Summary"          value={62} color={C.blue}   delay={0.3} />
+                </div>
+                <div style={{ padding: '12px 14px', background: C.oSoft, border: `1px solid ${C.oBorder}`, borderRadius: 10 }}>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12, color: C.oHover, marginBottom: 6 }}>✦ Top suggestions</div>
+                  {['Add metrics to 2 bullets in experience', 'Include 4 missing keywords from JD', 'Shorten summary to 3 lines'].map((s, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', marginBottom: 4 }}>
+                      <span style={{ color: C.orange, fontSize: 11, marginTop: 1 }}>→</span>
+                      <span style={{ fontSize: 11, color: C.t2, lineHeight: 1.5 }}>{s}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Reveal>
+          </div>
+        </W>
+      </section>
+
+      {/* ── MENTOR SHOWCASE ───────────────────────────────────── */}
+      <section style={{ padding: 'clamp(80px,8vw,120px) 0' }}>
+        <W>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,420px),1fr))', gap: '56px 72px', alignItems: 'center' }}>
+
+            {/* Left: mentor grid */}
+            <Reveal>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                {[
+                  { name: 'Rahul Sharma',   role: 'Product Manager', company: 'Google',    rating: 5, sessions: 48, tag: 'PM',      tagColor: C.purple },
+                  { name: 'Priya Kumar',    role: 'SWE',             company: 'Microsoft', rating: 5, sessions: 92, tag: 'SWE',     tagColor: C.blue   },
+                  { name: 'Arjun Mehta',    role: 'Data Scientist',  company: 'Flipkart',  rating: 4, sessions: 34, tag: 'DS',      tagColor: C.green  },
+                  { name: 'Sneha Iyer',     role: 'UX Designer',     company: 'Swiggy',    rating: 5, sessions: 61, tag: 'Design',  tagColor: C.orange },
+                  { name: 'Vikram Nair',    role: 'Finance',         company: 'Zerodha',   rating: 5, sessions: 27, tag: 'Finance', tagColor: '#D97706'},
+                  { name: 'Divya Pillai',   role: 'SWE',             company: 'Razorpay',  rating: 4, sessions: 55, tag: 'SWE',     tagColor: C.blue   },
+                ].map(m => <MentorCard key={m.name} {...m} />)}
+              </div>
+            </Reveal>
+
+            {/* Right */}
+            <Reveal delay={0.15}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: C.purple, letterSpacing: '0.1em', textTransform: 'uppercase', background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.18)', padding: '4px 10px', borderRadius: 100, display: 'inline-block', marginBottom: 16 }}>Jobr Mentor</span>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(28px,3.5vw,48px)', color: C.t1, marginBottom: 20, lineHeight: 1.05 }}>
+                Learn from people<br />already there.
+              </h2>
+              <p style={{ fontSize: 17, color: C.t2, lineHeight: 1.75, marginBottom: 28, maxWidth: 420 }}>
+                Browse verified domain experts across PM, SWE, Data Science, Design, and Finance. Book with credits. Pay only after you're satisfied.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
+                {[
+                  { label: 'Verified experts only',    desc: 'Every mentor is vetted for domain expertise' },
+                  { label: 'Credits-based wallet',     desc: 'Top up once, use across any mentor, anytime' },
+                  { label: 'Built-in escrow system',   desc: 'Pay only after delivery is confirmed by you' },
+                ].map(f => (
+                  <div key={f.label} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <CheckCircle size={14} color={C.purple} style={{ flexShrink: 0, marginTop: 2 }} />
+                    <div>
+                      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: C.t1 }}>{f.label}</span>
+                      <span style={{ fontSize: 12, color: C.t3, display: 'block' }}>{f.desc}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <a href="/mentor" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '12px 24px', borderRadius: 100, fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-display)', textDecoration: 'none', background: C.purple, color: '#fff', boxShadow: '0 4px 16px rgba(124,58,237,0.28)', transition: 'all 0.2s' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'none'; }}>
+                  Browse Mentors <ArrowRight size={14} />
+                </a>
+                <a href="/mentor/onboard" className="btn-ghost" style={{ fontSize: 14, padding: '12px 20px' }}>
+                  Become a Mentor
+                </a>
+              </div>
+            </Reveal>
+          </div>
+        </W>
+      </section>
+
+      {/* ── MERCH SHOWCASE ────────────────────────────────────── */}
+      <section style={{ background: C.bg, padding: 'clamp(80px,8vw,120px) 0' }}>
+        <W>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,420px),1fr))', gap: '56px 72px', alignItems: 'center' }}>
+            <Reveal>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: C.green, letterSpacing: '0.1em', textTransform: 'uppercase', background: C.gSoft, border: '1px solid #BBF7D0', padding: '4px 10px', borderRadius: 100, display: 'inline-block', marginBottom: 16 }}>Jobr Merch</span>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(28px,3.5vw,48px)', color: C.t1, marginBottom: 20, lineHeight: 1.05 }}>
+                Wear your cohort.<br />Own your identity.
+              </h2>
+              <p style={{ fontSize: 17, color: C.t2, lineHeight: 1.75, marginBottom: 28, maxWidth: 440 }}>
+                From a single tee to 500 cohort kits — upload your design, pick your product, and confirm on WhatsApp. No complex checkout, no minimum order drama.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 32 }}>
+                {[
+                  { label: 'Welcome Kits',     icon: '🎁', desc: 'For new joiners & cohort starts' },
+                  { label: 'Graduation Merch', icon: '🎓', desc: 'Celebrate every milestone' },
+                  { label: 'Hackathon Swag',   icon: '⚡', desc: 'Events that leave an impression' },
+                  { label: 'Cohort Tees',      icon: '👕', desc: 'Community & identity in wearable form' },
+                ].map(item => (
+                  <div key={item.label} style={{ padding: '14px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14 }}>
+                    <div style={{ fontSize: 20, marginBottom: 6 }}>{item.icon}</div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, color: C.t1, marginBottom: 3 }}>{item.label}</div>
+                    <div style={{ fontSize: 11, color: C.t3, lineHeight: 1.4 }}>{item.desc}</div>
+                  </div>
+                ))}
+              </div>
+              <a href="/merch" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '12px 24px', borderRadius: 100, fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-display)', textDecoration: 'none', background: C.green, color: '#fff', boxShadow: '0 4px 16px rgba(22,163,74,0.25)', transition: 'all 0.2s' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'none'; }}>
+                Browse Catalogue <ArrowRight size={14} />
+              </a>
+            </Reveal>
+
+            {/* Right: order preview */}
+            <Reveal delay={0.15}>
+              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 24, padding: 24, boxShadow: '0 20px 48px rgba(24,24,27,0.08)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: C.t1 }}>Cohort Kit Builder</span>
+                  <span style={{ fontSize: 10, color: C.green, fontFamily: 'var(--font-mono)', background: C.gSoft, padding: '3px 8px', borderRadius: 100 }}>LIVE</span>
+                </div>
+                {[
+                  { name: 'Premium T-Shirt',     qty: 50,   price: '₹350 × 50', total: '₹17,500' },
+                  { name: 'Embroidered Cap',      qty: 50,   price: '₹280 × 50', total: '₹14,000' },
+                  { name: 'Notebook Set',         qty: 50,   price: '₹120 × 50', total: '₹6,000' },
+                  { name: 'Tote Bag (Printed)',   qty: 50,   price: '₹180 × 50', total: '₹9,000' },
+                ].map((item, i) => (
+                  <div key={item.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: i % 2 === 0 ? C.bg : 'transparent', borderRadius: 8, marginBottom: 4 }}>
+                    <div>
+                      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12, color: C.t1 }}>{item.name}</div>
+                      <div style={{ fontSize: 10, color: C.t3, fontFamily: 'var(--font-mono)' }}>{item.price}</div>
+                    </div>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 13, color: C.green }}>{item.total}</span>
+                  </div>
+                ))}
+                <div style={{ marginTop: 12, padding: '12px 14px', background: C.gSoft, border: '1px solid #BBF7D0', borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, color: C.green }}>Kit Total</span>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 16, color: C.green }}>₹46,500</span>
+                </div>
+                <div style={{ marginTop: 10, fontSize: 11, color: C.t3, textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
+                  WhatsApp confirm → 7 day delivery
+                </div>
+              </div>
+            </Reveal>
+          </div>
+        </W>
+      </section>
+
+      {/* ── SUCCESS STORIES ───────────────────────────────────── */}
+      <section style={{ padding: 'clamp(80px,8vw,120px) 0' }}>
+        <W>
+          <Reveal>
+            <div style={{ textAlign: 'center', marginBottom: 56 }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: C.t3, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Success Stories</span>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(28px,4vw,52px)', color: C.t1, marginTop: 12 }}>
+                Real results.<br />Real students.
+              </h2>
+            </div>
+          </Reveal>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,340px),1fr))', gap: 20 }}>
             {[
               {
-                org: 'Large EdTech — 120K Learners',
-                challenge: 'Manual coordination of welcome kits across 47 cohort batches, requiring 3 ops staff full-time.',
-                impl: 'HRMS webhook triggers Jobr workflow on enrollment. Kits shipped within 48 hours of joining.',
-                metrics: [['92%', 'Reduction in manual ops'], ['25,000', 'Kits automated quarterly'], ['48h', 'Fulfillment SLA']],
+                name: 'Aditya Sharma', role: 'B.Tech CSE · IIT Bombay',
+                quote: 'Jobr Prep rewrote my entire CV in under a minute. The AI caught missing metrics I had no idea were important. Got shortlisted at Google two weeks later.',
+                result: 'Placed at Google SWE', color: C.orange, rating: 5,
               },
               {
-                org: 'Enterprise HR Team — 8K Employees',
-                challenge: 'Address errors causing 14% return rate on employee onboarding kits, high reshipment costs.',
-                impl: 'Jobr Address Validation API integrated into HRMS at record creation. Invalid addresses flagged before dispatch.',
-                metrics: [['87%', 'Fewer address errors'], ['₹12L', 'Annual savings on returns'], ['0.3%', 'Current failure rate']],
+                name: 'Riya Verma', role: 'MBA · IIM Calcutta',
+                quote: 'The mentor sessions through Jobr were the most practical advice I have ever received. My mentor caught exactly what was going wrong in my case interviews.',
+                result: 'Cracked McKinsey', color: C.purple, rating: 5,
               },
               {
-                org: 'Coding Bootcamp — 6 Cities',
-                challenge: 'Scaling certification merchandise from 200 to 4,000 graduates per quarter with same-size team.',
-                impl: 'LMS completion event triggers batch kit order. Automated size/variant mapping from learner profile.',
-                metrics: [['20×', 'Scale without headcount'], ['4,000', 'Kits per quarter'], ['99.1%', 'On-time delivery']],
+                name: 'Karan Mehta', role: 'EdTech Operations Head',
+                quote: 'We ordered welcome kits for 400 students using Jobr Merch. WhatsApp-based ordering, zero headaches, everything delivered within a week.',
+                result: '400 kits in 7 days', color: C.green, rating: 5,
               },
-            ].map((cs, i) => (
-              <Reveal key={cs.org} delay={i * 0.1}>
-                <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 24, padding: 28, height: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: C.accent, letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>
-                    {cs.org}
+            ].map((s, i) => (
+              <Reveal key={s.name} delay={i * 0.1}>
+                <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 20, padding: 24, height: '100%', display: 'flex', flexDirection: 'column', gap: 14, transition: 'all 0.25s', cursor: 'default' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 16px 40px rgba(24,24,27,0.09)'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = 'none'; (e.currentTarget as HTMLElement).style.transform = 'none'; }}>
+                  {/* Stars */}
+                  <div style={{ display: 'flex', gap: 3 }}>
+                    {[...Array(s.rating)].map((_, j) => <Star key={j} size={13} fill={s.color} color={s.color} />)}
                   </div>
-
-                  <div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: C.text3, fontFamily: 'var(--font-mono)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Challenge</div>
-                    <p style={{ fontSize: 14, color: C.text2, lineHeight: 1.65, margin: 0 }}>{cs.challenge}</p>
-                  </div>
-
-                  <div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: C.text3, fontFamily: 'var(--font-mono)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Implementation</div>
-                    <p style={{ fontSize: 14, color: C.text2, lineHeight: 1.65, margin: 0 }}>{cs.impl}</p>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 8, marginTop: 'auto', flexWrap: 'wrap' }}>
-                    {cs.metrics.map(([val, label]) => (
-                      <div key={label as string} style={{ flex: 1, minWidth: 90, padding: '12px', background: C.bg, borderRadius: 12, border: `1px solid ${C.border}`, textAlign: 'center' }}>
-                        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 20, color: C.text1, letterSpacing: '-0.03em' }}>{val}</div>
-                        <div style={{ fontSize: 11, color: C.text3, fontFamily: 'var(--font-mono)', marginTop: 2 }}>{label}</div>
-                      </div>
-                    ))}
+                  {/* Quote */}
+                  <p style={{ fontSize: 14, color: C.t2, lineHeight: 1.7, margin: 0, flex: 1, fontStyle: 'italic' }}>
+                    "{s.quote}"
+                  </p>
+                  {/* Author */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 38, height: 38, borderRadius: '50%', background: `${s.color}18`, border: `1px solid ${s.color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 14, color: s.color, flexShrink: 0 }}>
+                      {s.name[0]}
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, color: C.t1 }}>{s.name}</div>
+                      <div style={{ fontSize: 11, color: C.t3 }}>{s.role}</div>
+                    </div>
+                    <div style={{ marginLeft: 'auto', padding: '4px 10px', borderRadius: 100, background: `${s.color}10`, border: `1px solid ${s.color}20`, fontSize: 10, color: s.color, fontFamily: 'var(--font-mono)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      {s.result}
+                    </div>
                   </div>
                 </div>
               </Reveal>
             ))}
           </div>
-        </div>
+        </W>
       </section>
 
-      {/* ── FINAL CTA ───────────────────────────────────────────── */}
-      <section id="cta" style={{ padding: 'clamp(80px,8vw,120px) 32px', background: '#18181B' }}>
-        <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center' }}>
+      {/* ── FINAL CTA ─────────────────────────────────────────── */}
+      <section style={{ background: '#18181B', padding: 'clamp(80px,8vw,120px) 24px' }}>
+        <div style={{ maxWidth: 760, margin: '0 auto', textAlign: 'center' }}>
           <Reveal>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#52525B', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              Get Started
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#3F3F46', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+              Start Today
             </span>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(36px,5vw,72px)', color: '#FAFAF9', marginTop: 16, marginBottom: 20, letterSpacing: '-0.04em', lineHeight: 1.0 }}>
-              Stop Managing Swag.<br />
-              <span style={{ color: C.accent }}>Start Automating<br />Operations.</span>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(32px,5vw,64px)', color: '#FAFAF9', marginTop: 16, marginBottom: 16, letterSpacing: '-0.04em', lineHeight: 1.0 }}>
+              Everything You Need<br />
+              <span style={{ color: C.orange }}>To Become Job Ready.</span>
             </h2>
-            <p style={{ fontSize: 18, color: '#71717A', lineHeight: 1.7, maxWidth: 520, margin: '0 auto 40px' }}>
-              Join 620+ organizations that use Jobr to run merchandise operations at scale — without the overhead.
+            <p style={{ fontSize: 17, color: '#71717A', lineHeight: 1.75, maxWidth: 480, margin: '0 auto 36px' }}>
+              Preparation, mentorship, and growth — all in one place. No five different platforms. Just Jobr.
             </p>
-            <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 24 }}>
-              <a href="mailto:hello@jobr.co.in?subject=Book a Demo" className="btn-primary" style={{ fontSize: 16, padding: '16px 40px' }}>
-                Book Demo
-                <ArrowRight size={16} />
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 20 }}>
+              <a href="/dashboard" className="btn-primary" style={{ fontSize: 16, padding: '16px 40px' }}>
+                Start Your Career Journey <ArrowRight size={16} />
               </a>
-              <a href="mailto:hello@jobr.co.in?subject=Talk to Sales" style={{
+              <a href="/mentor" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
                 background: 'transparent', color: '#A1A1AA',
                 fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 16,
-                padding: '16px 36px', borderRadius: 100,
+                padding: '16px 32px', borderRadius: 100,
                 border: '1px solid #3F3F46', textDecoration: 'none',
                 transition: 'all 0.2s',
               }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#71717A'; (e.currentTarget as HTMLElement).style.color = '#FAFAF9'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#3F3F46'; (e.currentTarget as HTMLElement).style.color = '#A1A1AA'; }}>
-                Talk to Sales
+                Browse Mentors
               </a>
             </div>
-            <p style={{ fontSize: 12, color: '#3F3F46', fontFamily: 'var(--font-mono)' }}>
-              No setup fee · Free pilot for first 500 kits · SLA-backed infrastructure
+            <p style={{ fontSize: 12, color: '#27272A', fontFamily: 'var(--font-mono)' }}>
+              Free to start · No credit card · Your data stays private
             </p>
           </Reveal>
         </div>
       </section>
 
+      <style jsx global>{`
+        @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.8)} }
+      `}</style>
     </div>
   );
 }

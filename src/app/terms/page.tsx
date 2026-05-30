@@ -1,15 +1,15 @@
 export default function TermsPage() {
   return (
-    <div style={{ background: '#1C1C2E', minHeight: '100vh' }}>
-      <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: 'clamp(48px,6vw,80px) 20px' }}>
+    <div style={{ background: '#F8F5F0', minHeight: '100vh' }}>
+      <div style={{ borderBottom: '1px solid #E7E5E4', padding: 'clamp(48px,6vw,80px) 20px' }}>
         <div style={{ maxWidth: 760, margin: '0 auto' }}>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(32px,5vw,52px)', fontWeight: 900, color: '#F1F0FF', letterSpacing: '-0.03em', marginBottom: 12 }}>Terms of Service</h1>
-          <p style={{ fontSize: 14, color: '#475569' }}>Last updated: May 11, 2026 · Effective immediately</p>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(32px,5vw,52px)', fontWeight: 900, color: '#18181B', letterSpacing: '-0.03em', marginBottom: 12 }}>Terms of Service</h1>
+          <p style={{ fontSize: 14, color: '#71717A' }}>Last updated: May 11, 2026 · Effective immediately</p>
         </div>
       </div>
 
       <div style={{ maxWidth: 760, margin: '0 auto', padding: 'clamp(32px,5vw,60px) 20px' }}>
-        <div style={{ padding: '14px 18px', background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.15)', borderRadius: 12, marginBottom: 36 }}>
+        <div style={{ padding: '14px 18px', background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 12, marginBottom: 36 }}>
           <p style={{ fontSize: 14, color: '#F97316', margin: 0, lineHeight: 1.6 }}>
             By using Jobr.co.in, you agree to these terms. These terms apply to all three products: Prep.Jobr, Mentor.Jobr, and Merch.Jobr.
           </p>
@@ -78,15 +78,15 @@ export default function TermsPage() {
             content: 'For terms-related questions, email nitish@jobr.co.in with the subject "Terms Query".',
           },
         ].map(section => (
-          <div key={section.title} style={{ marginBottom: 32, paddingBottom: 32, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 800, color: '#F1F0FF', marginBottom: 12 }}>{section.title}</h2>
-            {section.content && <p style={{ fontSize: 15, color: '#94A3B8', lineHeight: 1.75, margin: 0 }}>{section.content}</p>}
+          <div key={section.title} style={{ marginBottom: 32, paddingBottom: 32, borderBottom: '1px solid #E7E5E4' }}>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 800, color: '#18181B', marginBottom: 12 }}>{section.title}</h2>
+            {section.content && <p style={{ fontSize: 15, color: '#52525B', lineHeight: 1.75, margin: 0 }}>{section.content}</p>}
             {section.items && (
               <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none' }}>
                 {section.items.map((item, i) => (
                   <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
-                    <span style={{ color: '#475569', flexShrink: 0, fontSize: 16, marginTop: 1 }}>·</span>
-                    <span style={{ fontSize: 15, color: '#94A3B8', lineHeight: 1.65 }}>{item}</span>
+                    <span style={{ color: '#A1A1AA', flexShrink: 0, fontSize: 16, marginTop: 1 }}>·</span>
+                    <span style={{ fontSize: 15, color: '#52525B', lineHeight: 1.65 }}>{item}</span>
                   </li>
                 ))}
               </ul>
