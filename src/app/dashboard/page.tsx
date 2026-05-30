@@ -1,16 +1,17 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
 import {
-  FileText, Briefcase, Mic, Users, BookOpen,
+  FileText, Briefcase, Mic, Users, BookOpen, Settings,
   Plus, Trash2, Send, Key, Trophy, AlertCircle,
   Clock, CheckCircle2, Zap, ExternalLink,
   Calendar, RefreshCw, X, Sparkles, Lock,
-  MessageSquare, LogIn, Download,
+  MessageSquare, LogIn, Download, Save,
 } from 'lucide-react';
 import {
   PrepProvider, usePrep, JobTrack, TrackStatus,
   SEED_TRACKS, COURSE_DATA,
 } from '@/context/PrepContext';
+import { supabase } from '@/lib/supabase';
 
 const TABS = [
   { id: 'cv',        label: 'CV.Prep',        icon: FileText,  color: '#7C3AED' },
@@ -18,6 +19,7 @@ const TABS = [
   { id: 'interview', label: 'Interview.Prep', icon: Mic,       color: '#F97316' },
   { id: 'mentor',    label: 'Mentor.Prep',    icon: Users,     color: '#4F46E5' },
   { id: 'learn',     label: 'Learn.Prep',     icon: BookOpen,  color: '#10B981' },
+  { id: 'settings',  label: 'Settings',       icon: Settings,  color: '#64748B' },
 ] as const;
 
 const STATUS_CONFIG: Record<TrackStatus, { label: string; color: string; bg: string; icon: any; step: number }> = {
@@ -35,92 +37,127 @@ export default function PrepDashboard() {
 }
 
 function PrepInner() {
-  const { state, dispatch, loadTracks } = usePrep();
+  const { state, dispatch, loadTracks, authLoading } = usePrep();
   const [demoMode, setDemoMode] = useState(false);
+  const toolRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const session = localStorage.getItem('jobr_session') || localStorage.getItem('jobr_user');
-    if (session) {
+    if (authLoading) return;
+    if (state.userEmail) {
+      setDemoMode(false);
       loadTracks();
     } else {
       setDemoMode(true);
       dispatch({ type: 'SET_TRACKS', tracks: SEED_TRACKS as any });
       dispatch({ type: 'SET_ACTIVE_TRACK', id: SEED_TRACKS[0].id });
     }
-  }, []);
+  }, [authLoading, state.userEmail]);
+
+  if (authLoading) {
+    return (
+      <div style={{ background: '#1C1C2E', minHeight: 'calc(100vh - 64px)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 14 }}>
+        <div style={{ width: 40, height: 40, border: '3px solid rgba(124,58,237,0.2)', borderTopColor: '#7C3AED', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        <p style={{ fontSize: 13, color: '#475569' }}>Loading your workspace...</p>
+        <style jsx global>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   return (
     <div style={{ background: '#1C1C2E', minHeight: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
 
-
-      {/* PREP.JOBR HERO */}
-      <div style={{ background: 'linear-gradient(145deg, rgba(124,58,237,0.12) 0%, transparent 60%)', borderBottom: '1px solid rgba(124,58,237,0.12)', padding: 'clamp(28px,4vw,44px) 20px clamp(20px,3vw,32px)' }}>
-        <div style={{ maxWidth: 1120, margin: '0 auto' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.22)', borderRadius: 100, padding: '5px 14px', marginBottom: 14 }}>
+      {/* ── HERO ── */}
+      <div style={{ background: 'linear-gradient(145deg, rgba(124,58,237,0.13) 0%, rgba(124,58,237,0.04) 40%, transparent 70%)', borderBottom: '1px solid rgba(124,58,237,0.12)', padding: 'clamp(52px,8vw,96px) 24px clamp(44px,7vw,80px)', minHeight: '82vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ maxWidth: 1120, margin: '0 auto', width: '100%' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.22)', borderRadius: 100, padding: '5px 14px', marginBottom: 24 }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#7C3AED', animation: 'pulse-dot 2s infinite' }} />
             <span style={{ fontSize: 11, fontWeight: 700, color: '#A78BFA', fontFamily: 'monospace', letterSpacing: '0.1em' }}>PREP.JOBR</span>
           </div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(26px,4vw,48px)', fontWeight: 900, color: '#F1F0FF', letterSpacing: '-0.03em', lineHeight: 1.05, marginBottom: 10 }}>
-            Track every application.<br />
-            <span style={{ background: 'linear-gradient(135deg, #A78BFA, #7C3AED)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Win every interview.</span>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(36px,6vw,72px)', fontWeight: 900, color: '#F1F0FF', letterSpacing: '-0.03em', lineHeight: 1.02, marginBottom: 20, maxWidth: 720 }}>
+            Your next offer<br />
+            <span style={{ background: 'linear-gradient(135deg, #A78BFA, #7C3AED)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>starts here.</span>
           </h1>
-          <p style={{ fontSize: 'clamp(13px,1.8vw,15px)', color: '#64748B', maxWidth: 500, lineHeight: 1.6, marginBottom: 18 }}>
-            AI CV optimizer · Job tracker · Mock interviews · Skill gap analysis. Bring your own Gemini key. Zero data stored.
+          <p style={{ fontSize: 'clamp(15px,2vw,19px)', color: '#64748B', maxWidth: 520, lineHeight: 1.65, marginBottom: 36 }}>
+            AI CV optimizer · Job tracker · Mock interviews · Skill gap analysis. Free to start with your own Gemini key.
           </p>
-          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-            {[{value:'3',label:'Free mock interviews'},{value:'0%',label:'CV data stored'},{value:'XYZ',label:"Google formula"}].map(s=>(
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 52 }}>
+            <button onClick={() => toolRef.current?.scrollIntoView({ behavior: 'smooth' })} style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: 'linear-gradient(135deg, #7C3AED, #6D28D9)', color: '#fff', border: 'none', borderRadius: 100, padding: '14px 32px', fontWeight: 700, fontSize: 16, cursor: 'pointer', fontFamily: 'var(--font-display)', boxShadow: '0 4px 20px rgba(124,58,237,0.4)' }}>
+              <Sparkles size={17} /> Start Optimizing Free
+            </button>
+            {!demoMode ? (
+              <button onClick={() => { dispatch({ type: 'SET_TAB', tab: 'tracks' }); toolRef.current?.scrollIntoView({ behavior: 'smooth' }); }} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.06)', color: '#94A3B8', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 100, padding: '14px 28px', fontWeight: 600, fontSize: 15, cursor: 'pointer', fontFamily: 'var(--font-display)' }}>
+                <Briefcase size={15} /> My Applications
+              </button>
+            ) : (
+              <a href="/auth?mode=signup" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.06)', color: '#94A3B8', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 100, padding: '14px 28px', fontWeight: 600, fontSize: 15, textDecoration: 'none', fontFamily: 'var(--font-display)' }}>
+                Create free account →
+              </a>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: 'clamp(24px,4vw,48px)', flexWrap: 'wrap' }}>
+            {[{value:'500+',label:'CVs optimized'},{value:'3',label:'Free mock interviews'},{value:'0%',label:'CV data stored'},{value:'XYZ',label:'Google formula'}].map(s => (
               <div key={s.label}>
-                <div style={{fontSize:18,fontWeight:900,color:'#A78BFA',fontFamily:'var(--font-display)'}}>{s.value}</div>
-                <div style={{fontSize:11,color:'#475569'}}>{s.label}</div>
+                <div style={{ fontSize: 'clamp(20px,2.5vw,28px)', fontWeight: 900, color: '#A78BFA', fontFamily: 'var(--font-display)', lineHeight: 1 }}>{s.value}</div>
+                <div style={{ fontSize: 12, color: '#475569', marginTop: 4 }}>{s.label}</div>
               </div>
             ))}
           </div>
         </div>
-      </div>
-
-      {demoMode && (
-        <div style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(249,115,22,0.10))', borderBottom: '1px solid rgba(124,58,237,0.25)', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#A78BFA', animation: 'pulse-dot 2s infinite' }} />
-            <span style={{ fontSize: 13, color: '#C4B5FD', fontWeight: 600, fontFamily: 'var(--font-display)' }}>You're viewing a demo — sign up to track your own applications</span>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <a href="/auth?mode=signup" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#7C3AED', color: '#fff', textDecoration: 'none', padding: '6px 16px', borderRadius: 100, fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-display)' }}><Sparkles size={12} /> Sign up free</a>
-            <a href="/auth" style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.08)', color: '#C4B5FD', textDecoration: 'none', padding: '6px 14px', borderRadius: 100, fontSize: 12, fontWeight: 600 }}><LogIn size={12} /> Sign in</a>
-          </div>
-        </div>
-      )}
-
-      <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(20,20,36,0.9)', backdropFilter: 'blur(12px)', padding: '0 20px', display: 'flex', alignItems: 'center', overflowX: 'auto', flexShrink: 0 }} className="scrollbar-hide">
-        {demoMode && (
-          <span style={{ fontSize: 9, fontWeight: 700, color: '#A78BFA', background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.25)', padding: '3px 8px', borderRadius: 99, fontFamily: 'monospace', marginRight: 8, flexShrink: 0 }}>DEMO</span>
-        )}
-        {TABS.map(tab => (
-          <button key={tab.id} onClick={() => dispatch({ type: 'SET_TAB', tab: tab.id as any })} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '16px 14px', background: 'transparent', border: 'none', cursor: 'pointer', borderBottom: state.activeTab === tab.id ? `2px solid ${tab.color}` : '2px solid transparent', color: state.activeTab === tab.id ? tab.color : '#64748B', fontSize: 13, fontWeight: state.activeTab === tab.id ? 700 : 500, fontFamily: 'var(--font-display)', whiteSpace: 'nowrap', transition: 'all 0.15s', marginBottom: '-1px' }}>
-            <tab.icon size={14} />{tab.label}
+        <div style={{ textAlign: 'center', marginTop: 'auto', paddingTop: 40 }}>
+          <button onClick={() => toolRef.current?.scrollIntoView({ behavior: 'smooth' })} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 6, color: '#334155' }}>
+            <span style={{ fontSize: 11, fontFamily: 'monospace', letterSpacing: '0.1em' }}>SCROLL TO START</span>
+            <div style={{ width: 1, height: 28, background: 'linear-gradient(to bottom, #334155, transparent)' }} />
           </button>
-        ))}
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, paddingLeft: 12 }}>
-          {!demoMode && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 100, background: state.apiKey ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${state.apiKey ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)'}` }}>
-              <Key size={10} color={state.apiKey ? '#10B981' : '#EF4444'} />
-              <span style={{ fontSize: 10, fontWeight: 700, color: state.apiKey ? '#10B981' : '#EF4444', fontFamily: 'monospace' }}>{state.apiKey ? 'KEY ✓' : 'NO KEY'}</span>
+        </div>
+      </div>
+
+      {/* ── TOOL ── */}
+      <div ref={toolRef}>
+        {demoMode && (
+          <div style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(249,115,22,0.10))', borderBottom: '1px solid rgba(124,58,237,0.25)', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#A78BFA', animation: 'pulse-dot 2s infinite' }} />
+              <span style={{ fontSize: 13, color: '#C4B5FD', fontWeight: 600, fontFamily: 'var(--font-display)' }}>You're viewing a demo — sign up to track your own applications</span>
             </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <a href="/auth?mode=signup" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#7C3AED', color: '#fff', textDecoration: 'none', padding: '6px 16px', borderRadius: 100, fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-display)' }}><Sparkles size={12} /> Sign up free</a>
+              <a href="/auth" style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.08)', color: '#C4B5FD', textDecoration: 'none', padding: '6px 14px', borderRadius: 100, fontSize: 12, fontWeight: 600 }}><LogIn size={12} /> Sign in</a>
+            </div>
+          </div>
+        )}
+
+        <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(20,20,36,0.95)', backdropFilter: 'blur(12px)', padding: '0 20px', display: 'flex', alignItems: 'center', overflowX: 'auto', flexShrink: 0, position: 'sticky', top: 64, zIndex: 50 }} className="scrollbar-hide">
+          {demoMode && (
+            <span style={{ fontSize: 9, fontWeight: 700, color: '#A78BFA', background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.25)', padding: '3px 8px', borderRadius: 99, fontFamily: 'monospace', marginRight: 8, flexShrink: 0 }}>DEMO</span>
           )}
+          {TABS.map(tab => (
+            <button key={tab.id} onClick={() => dispatch({ type: 'SET_TAB', tab: tab.id as any })} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '16px 14px', background: 'transparent', border: 'none', cursor: 'pointer', borderBottom: state.activeTab === tab.id ? `2px solid ${tab.color}` : '2px solid transparent', color: state.activeTab === tab.id ? tab.color : '#64748B', fontSize: 13, fontWeight: state.activeTab === tab.id ? 700 : 500, fontFamily: 'var(--font-display)', whiteSpace: 'nowrap', transition: 'all 0.15s', marginBottom: '-1px' }}>
+              <tab.icon size={14} />{tab.label}
+            </button>
+          ))}
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, paddingLeft: 12 }}>
+            {!demoMode && (
+              <button onClick={() => dispatch({ type: 'SET_TAB', tab: 'settings' })} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 100, background: state.apiKey ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.08)', border: `1px solid ${state.apiKey ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)'}`, cursor: 'pointer' }}>
+                <Key size={10} color={state.apiKey ? '#10B981' : '#EF4444'} />
+                <span style={{ fontSize: 10, fontWeight: 700, color: state.apiKey ? '#10B981' : '#EF4444', fontFamily: 'monospace' }}>{state.apiKey ? 'KEY ✓' : 'ADD KEY'}</span>
+              </button>
+            )}
+          </div>
+        </div>
 
+        <div style={{ display: 'flex', minHeight: '100vh' }}>
+          {['cv','tracks','interview','mentor','learn'].includes(state.activeTab) && <TrackRail demoMode={demoMode} />}
+          <div style={{ flex: 1, overflow: 'auto', minWidth: 0 }} className="scrollbar-hide">
+            {state.activeTab === 'cv'        && <CVPrepTab demoMode={demoMode} />}
+            {state.activeTab === 'tracks'    && <TrackWorkspace demoMode={demoMode} />}
+            {state.activeTab === 'interview' && <InterviewTab demoMode={demoMode} />}
+            {state.activeTab === 'mentor'    && <MentorTab demoMode={demoMode} />}
+            {state.activeTab === 'learn'     && <LearnTab />}
+            {state.activeTab === 'settings'  && <SettingsTab demoMode={demoMode} />}
+          </div>
         </div>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
-        {['tracks','interview','mentor','learn'].includes(state.activeTab) && <TrackRail demoMode={demoMode} />}
-        <div style={{ flex: 1, overflow: 'auto', minWidth: 0 }} className="scrollbar-hide">
-          {state.activeTab === 'cv'        && <CVPrepTab demoMode={demoMode} />}
-          {state.activeTab === 'tracks'    && <TrackWorkspace demoMode={demoMode} />}
-          {state.activeTab === 'interview' && <InterviewTab demoMode={demoMode} />}
-          {state.activeTab === 'mentor'    && <MentorTab demoMode={demoMode} />}
-          {state.activeTab === 'learn'     && <LearnTab />}
-        </div>
-      </div>
       {state.showProModal && <ProModal />}
       <style jsx global>{`
         @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
@@ -215,9 +252,17 @@ function TrackWorkspace({ demoMode }: { demoMode: boolean }) {
   const [roadmapLoading, setRoadmapLoading] = useState(false);
 
   if (!activeTrack) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, padding: 40, opacity: 0.4, minHeight: 400 }}>
-      <Briefcase size={44} color="#334155" />
-      <div style={{ fontSize: 15, color: '#475569', fontWeight: 600 }}>Select a track or add a new one</div>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: 48, minHeight: 400, textAlign: 'center' }}>
+      <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(6,182,212,0.1)', border: '2px solid rgba(6,182,212,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Briefcase size={28} color="#06B6D4" />
+      </div>
+      <div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#F1F0FF', fontFamily: 'var(--font-display)', marginBottom: 6 }}>Track your first application</div>
+        <div style={{ fontSize: 14, color: '#475569', maxWidth: 300, lineHeight: 1.6 }}>Add a job to start tracking rounds, running mock interviews, and generating your Jobr Score.</div>
+      </div>
+      <div style={{ fontSize: 12, color: '#334155', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <Plus size={13} color="#06B6D4" /> Click the <span style={{ color: '#06B6D4', fontWeight: 600 }}>+</span> button in the left panel to add your first job
+      </div>
     </div>
   );
 
@@ -415,7 +460,6 @@ function TrackWorkspace({ demoMode }: { demoMode: boolean }) {
   );
 }
 
-// ── CV.Prep Tab — PDF export + API key validation ──────────────────────────────
 function CVPrepTab({ demoMode }: { demoMode: boolean }) {
   const { state, dispatch } = usePrep();
   const [apiKey,     setApiKeyLocal] = useState(state.apiKey);
@@ -426,6 +470,7 @@ function CVPrepTab({ demoMode }: { demoMode: boolean }) {
   const [keyValid,   setKeyValid]    = useState<boolean | null>(null);
   const [result,     setResult]      = useState<any>(null);
   const [error,      setError]       = useState('');
+  const [cvMeta,     setCvMeta]      = useState<{ mode?: string; freeUsed?: number; freeLimit?: number; creditsRemaining?: number } | null>(null);
 
   useEffect(() => {
     setCvText(localStorage.getItem('jobr_last_cv') || '');
@@ -438,34 +483,61 @@ function CVPrepTab({ demoMode }: { demoMode: boolean }) {
     if (!apiKey.trim()) return;
     setKeyTesting(true); setKeyValid(null);
     try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: 'Reply with the word: OK' }] }], generationConfig: { maxOutputTokens: 5 } }) }
-      );
+      const res = await fetch('/api/proxy', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userApiKey: apiKey, cvText: 'Test CV', jdText: 'Test JD' }),
+      });
       if (res.ok) {
         dispatch({ type: 'SET_API_KEY', key: apiKey });
         localStorage.setItem('jobr_gemini_key', apiKey);
         setKeyValid(true);
-      } else { setKeyValid(false); }
+      } else {
+        const data = await res.json();
+        setKeyValid(false);
+        setError(data?.error || 'Invalid key');
+      }
     } catch { setKeyValid(false); }
     finally { setKeyTesting(false); }
   };
 
   const handleOptimize = async () => {
     if (demoMode) return;
-    setError(''); setLoading(true);
+    setError(''); setLoading(true); setCvMeta(null);
     try {
-      const res = await fetch('/api/proxy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apiKey: apiKey || state.apiKey, cvText, jdText }) });
+      const res = await fetch('/api/proxy', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userApiKey: (apiKey || state.apiKey) || undefined,
+          userEmail:  state.userEmail || undefined,
+          cvText,
+          jdText,
+        }),
+      });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) {
+        const err: any = new Error(data.error);
+        err.requiresCredits = data.requiresCredits;
+        err.requiresAuth    = data.requiresAuth;
+        throw err;
+      }
       const raw  = data.candidates?.[0]?.content?.parts?.[0]?.text;
       const json = JSON.parse(raw?.match(/\{[\s\S]*\}/)?.[0] || '{}');
       setResult(json);
+      if (data.meta) setCvMeta(data.meta);
       localStorage.setItem('last_optimized_cv', JSON.stringify(json));
       localStorage.setItem('jobr_last_cv', cvText);
       localStorage.setItem('jobr_last_jd', jdText);
-    } catch (e: any) { setError(e.message); }
-    finally { setLoading(false); }
+    } catch (e: any) {
+      if (e.requiresCredits) {
+        setError(`Free optimizations used up. Top up credits at jobr.co.in/profile — or add your own API key in Settings (free with Gemini).`);
+      } else if (e.requiresAuth) {
+        setError('Sign in to use Jobr credits, or add your own API key in Settings.');
+      } else {
+        setError(e.message);
+      }
+    } finally { setLoading(false); }
   };
 
   const handleDownloadPDF = () => {
@@ -494,22 +566,52 @@ function CVPrepTab({ demoMode }: { demoMode: boolean }) {
     setTimeout(() => { pw.print(); pw.close(); }, 500);
   };
 
+  const freeRemaining = cvMeta?.freeLimit !== undefined ? cvMeta.freeLimit - (cvMeta.freeUsed || 0) : null;
+
   return (
     <div style={{ display: 'flex', height: '100%', minHeight: 'calc(100vh - 120px)', position: 'relative' }}>
       <div style={{ width: 340, minWidth: 340, borderRight: '1px solid rgba(255,255,255,0.06)', padding: 18, display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', ...(demoMode ? { filter: 'blur(2px)', pointerEvents: 'none' } : {}) }} className="scrollbar-hide">
 
-        {/* API Key — with test validation */}
+        {/* Usage indicator */}
+        {!state.apiKey && !demoMode && (
+          <div style={{ padding: '10px 14px', background: 'rgba(124,58,237,0.07)', border: '1px solid rgba(124,58,237,0.18)', borderRadius: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#A78BFA', fontFamily: 'monospace', marginBottom: 4 }}>JOBR CREDITS</div>
+            <div style={{ fontSize: 12, color: '#64748B', lineHeight: 1.5 }}>
+              3 free optimizations included. After that, 1 credit (₹100) per optimization — or add your own free Gemini key below.
+            </div>
+            <a href="/profile" style={{ fontSize: 11, color: '#A78BFA', fontWeight: 700, textDecoration: 'none', display: 'block', marginTop: 6 }}>View credits → jobr.co.in/profile</a>
+          </div>
+        )}
+
+        {/* Success meta */}
+        {cvMeta && (
+          <div style={{ padding: '9px 12px', background: cvMeta.mode === 'free' ? 'rgba(16,185,129,0.08)' : 'rgba(124,58,237,0.08)', border: `1px solid ${cvMeta.mode === 'free' ? 'rgba(16,185,129,0.2)' : 'rgba(124,58,237,0.2)'}`, borderRadius: 9, fontSize: 12 }}>
+            {cvMeta.mode === 'free' && (
+              <span style={{ color: '#10B981' }}>✓ Free optimization used — {cvMeta.freeLimit! - cvMeta.freeUsed!} of {cvMeta.freeLimit} remaining</span>
+            )}
+            {cvMeta.mode === 'credits' && (
+              <span style={{ color: '#A78BFA' }}>✓ 1 credit used — {cvMeta.creditsRemaining} credits remaining</span>
+            )}
+          </div>
+        )}
+
+        {/* API Key */}
         <div style={{ padding: 12, background: 'rgba(124,58,237,0.07)', border: `1px solid ${keyValid === true ? 'rgba(16,185,129,0.35)' : keyValid === false ? 'rgba(239,68,68,0.35)' : 'rgba(124,58,237,0.18)'}`, borderRadius: 12, transition: 'border-color 0.2s' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#A78BFA', fontFamily: 'monospace', marginBottom: 7 }}>GEMINI API KEY</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#A78BFA', fontFamily: 'monospace', marginBottom: 7 }}>YOUR API KEY <span style={{ color: '#334155', fontWeight: 400 }}>(optional — use your own key)</span></div>
           <div style={{ display: 'flex', gap: 6, marginBottom: 5 }}>
-            <input type="password" placeholder="AIzaSy..." value={apiKey} onChange={e => { setApiKeyLocal(e.target.value); setKeyValid(null); }} onKeyDown={e => e.key === 'Enter' && saveKey()} className="input" style={{ fontSize: 12, padding: '7px 10px' }} />
+            <input type="password" placeholder="AIzaSy... / sk-... / sk-ant-..." value={apiKey} onChange={e => { setApiKeyLocal(e.target.value); setKeyValid(null); }} onKeyDown={e => e.key === 'Enter' && saveKey()} className="input" style={{ fontSize: 12, padding: '7px 10px' }} />
             <button onClick={saveKey} disabled={keyTesting || !apiKey.trim()} style={{ background: keyValid === true ? '#10B981' : keyValid === false ? '#EF4444' : '#7C3AED', color: '#fff', border: 'none', borderRadius: 8, padding: '0 11px', fontWeight: 700, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap', minWidth: 54, transition: 'background 0.2s' }}>
               {keyTesting ? '...' : keyValid === true ? '✓ OK' : keyValid === false ? '✗ Bad' : 'Test'}
             </button>
           </div>
-          {keyValid === true && <div style={{ fontSize: 11, color: '#10B981' }}>✓ Key verified — ready to use Gemini 1.5 Flash</div>}
-          {keyValid === false && <div style={{ fontSize: 11, color: '#EF4444' }}>✗ Invalid key. Double-check and try again.</div>}
-          {keyValid === null && <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ fontSize: 10, color: '#7C3AED', display: 'block' }}>Get free key → aistudio.google.com</a>}
+          {keyValid === true  && <div style={{ fontSize: 11, color: '#10B981' }}>✓ Key verified — unlimited optimizations</div>}
+          {keyValid === false && <div style={{ fontSize: 11, color: '#EF4444' }}>✗ Invalid key. Check and try again.</div>}
+          {keyValid === null  && (
+            <div style={{ fontSize: 10, color: '#475569' }}>
+              Supports Gemini · OpenAI · Anthropic ·{' '}
+              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color: '#7C3AED' }}>Get free Gemini key →</a>
+            </div>
+          )}
         </div>
 
         <div>
@@ -521,21 +623,24 @@ function CVPrepTab({ demoMode }: { demoMode: boolean }) {
           <textarea className="input" placeholder="Paste the JD here..." value={jdText} onChange={e => { setJdText(e.target.value); localStorage.setItem('jobr_last_jd', e.target.value); }} style={{ height: 150, resize: 'none', fontSize: 12 }} />
         </div>
 
-        {error && <div style={{ padding: '9px 12px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 9, fontSize: 12, color: '#EF4444' }}>{error}</div>}
+        {error && (
+          <div style={{ padding: '9px 12px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 9, fontSize: 12, color: '#EF4444', lineHeight: 1.5 }}>
+            {error}
+            {error.includes('profile') && (
+              <a href="/profile" style={{ display: 'block', marginTop: 6, color: '#F97316', fontWeight: 700 }}>Top up credits →</a>
+            )}
+          </div>
+        )}
 
-        <button onClick={handleOptimize} disabled={loading || !state.apiKey} style={{ background: 'linear-gradient(135deg, #7C3AED, #6D28D9)', color: '#fff', border: 'none', borderRadius: 100, padding: '12px', fontWeight: 700, fontSize: 14, cursor: loading || !state.apiKey ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'var(--font-display)', opacity: loading || !state.apiKey ? 0.6 : 1 }}>
+        <button onClick={handleOptimize} disabled={loading || (!state.apiKey && !state.userEmail)} style={{ background: 'linear-gradient(135deg, #7C3AED, #6D28D9)', color: '#fff', border: 'none', borderRadius: 100, padding: '12px', fontWeight: 700, fontSize: 14, cursor: loading || (!state.apiKey && !state.userEmail) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'var(--font-display)', opacity: loading || (!state.apiKey && !state.userEmail) ? 0.6 : 1 }}>
           {loading ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> Processing...</> : <><Sparkles size={14} /> Optimize My CV</>}
         </button>
 
-        {/* ── NEW: Download PDF button ── */}
         {result && (
-          <button onClick={handleDownloadPDF} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.25)', color: '#A78BFA', borderRadius: 100, padding: '10px', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-display)', transition: 'all 0.2s' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(124,58,237,0.18)'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(124,58,237,0.1)'; }}>
+          <button onClick={handleDownloadPDF} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.25)', color: '#A78BFA', borderRadius: 100, padding: '10px', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-display)' }}>
             <Download size={14} /> Download as PDF
           </button>
         )}
-
         {result && (
           <a href="/dashboard/send" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.2)', color: '#06B6D4', borderRadius: 100, padding: '10px', fontWeight: 700, fontSize: 13, textDecoration: 'none', fontFamily: 'var(--font-display)' }}>
             <Send size={13} /> Send via Gmail →
@@ -548,13 +653,12 @@ function CVPrepTab({ demoMode }: { demoMode: boolean }) {
           <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(124,58,237,0.15)', border: '2px solid rgba(124,58,237,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Lock size={22} color="#A78BFA" /></div>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700, color: '#F1F0FF', fontFamily: 'var(--font-display)', marginBottom: 6 }}>Free to use — sign up first</div>
-            <div style={{ fontSize: 13, color: '#64748B', lineHeight: 1.6 }}>Works with Gemini 1.5 Flash (free), OpenAI, or Claude.</div>
+            <div style={{ fontSize: 13, color: '#64748B', lineHeight: 1.6 }}>3 free optimizations included. Works with Gemini (free), OpenAI, or Anthropic.</div>
           </div>
           <a href="/auth?mode=signup" style={{ background: '#7C3AED', color: '#fff', textDecoration: 'none', padding: '10px 24px', borderRadius: 100, fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-display)' }}>Sign up free →</a>
         </div>
       )}
 
-      {/* CV Preview */}
       <div style={{ flex: 1, padding: 24, overflowY: 'auto', background: '#05070A', maxHeight: 'calc(100vh - 130px)' }} className="scrollbar-hide">
         {result ? (
           <div id="cv-preview" style={{ maxWidth: 620, margin: '0 auto', background: '#fff', color: '#111', padding: '40px 36px', borderRadius: 4, borderTop: '10px solid #7C3AED', boxShadow: '0 8px 40px rgba(0,0,0,0.5)' }}>
@@ -581,14 +685,13 @@ function CVPrepTab({ demoMode }: { demoMode: boolean }) {
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, opacity: 0.35 }}>
             <FileText size={44} color="#334155" />
             <div style={{ fontSize: 15, color: '#475569', fontWeight: 600 }}>Your optimized CV will appear here</div>
-            <div style={{ fontSize: 13, color: '#334155', textAlign: 'center', maxWidth: 280 }}>Test your API key, paste CV + JD, then click Optimize</div>
+            <div style={{ fontSize: 13, color: '#334155', textAlign: 'center', maxWidth: 280 }}>Paste your CV + JD and click Optimize</div>
           </div>
         )}
       </div>
     </div>
   );
 }
-
 function InterviewTab({ demoMode }: { demoMode: boolean }) {
   const { state, dispatch, startMockInterview, sendMockAnswer, activeTrack } = usePrep();
   const [answer, setAnswer] = useState('');
@@ -666,7 +769,7 @@ function MentorTab({ demoMode }: { demoMode: boolean }) {
   const MENTORS = [
     { name: 'Priya Sharma', role: 'Ex-Google PM · IIM-A',           domain: 'Product Management',  rate: 25, rating: 4.9, sessions: 48, color: '#4F46E5' },
     { name: 'Arjun Mehta',  role: 'Staff Engineer @ Swiggy',        domain: 'Software Engineering', rate: 20, rating: 4.8, sessions: 62, color: '#0D9488' },
-    { name: 'Sneha Iyer',   role: 'Data Science Lead · Ex-Netflix', domain: 'Data Science & AI',   rate: 18, rating: 4.7, sessions: 35, color: '#06B6D4' },
+    { name: 'Sneha Iyer',   role: 'Data Science Lead · Ex-Netflix', domain: 'Data Science & AI',    rate: 18, rating: 4.7, sessions: 35, color: '#06B6D4' },
   ];
   return (
     <div style={{ padding: 24, maxWidth: 780 }}>
@@ -755,6 +858,101 @@ function LearnTab() {
         <p style={{ fontSize: 13, color: '#64748B', marginBottom: 10, lineHeight: 1.5 }}>Feature your courses here — shown to students with matching skill gaps.</p>
         <a href="mailto:nitish@jobr.co.in?subject=EdTech Course Partnership" style={{ fontSize: 13, fontWeight: 700, color: '#A78BFA', textDecoration: 'none' }}>Contact → nitish@jobr.co.in</a>
       </div>
+    </div>
+  );
+}
+
+function SettingsTab({ demoMode }: { demoMode: boolean }) {
+  const { state, dispatch } = usePrep();
+  const [keys, setKeys] = useState({ gemini: state.providerKeys.gemini, openai: state.providerKeys.openai, anthropic: state.providerKeys.anthropic });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    if (keys.gemini)    localStorage.setItem('jobr_gemini_key', keys.gemini);
+    if (keys.openai)    localStorage.setItem('jobr_openai_key', keys.openai);
+    if (keys.anthropic) localStorage.setItem('jobr_anthropic_key', keys.anthropic);
+    if (keys.gemini)    dispatch({ type: 'SET_PROVIDER_KEY', provider: 'gemini',    key: keys.gemini });
+    if (keys.openai)    dispatch({ type: 'SET_PROVIDER_KEY', provider: 'openai',    key: keys.openai });
+    if (keys.anthropic) dispatch({ type: 'SET_PROVIDER_KEY', provider: 'anthropic', key: keys.anthropic });
+    if (state.userEmail) {
+      const { createClient } = await import('@supabase/supabase-js');
+      const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+      await sb.from('user_settings').upsert({
+        email: state.userEmail,
+        gemini_key: keys.gemini || null,
+        openai_key: keys.openai || null,
+        anthropic_key: keys.anthropic || null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'email' });
+    }
+    setSaving(false); setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    localStorage.removeItem('jobr_session');
+    localStorage.removeItem('jobr_user');
+    window.location.href = '/';
+  };
+
+  const PROVIDER_CONFIGS = [
+    { key: 'gemini' as const,    label: 'Google Gemini',    placeholder: 'AIzaSy...',    url: 'https://aistudio.google.com/app/apikey',          urlLabel: 'aistudio.google.com',    color: '#4285F4', free: true  },
+    { key: 'openai' as const,    label: 'OpenAI',           placeholder: 'sk-proj-...',  url: 'https://platform.openai.com/api-keys',            urlLabel: 'platform.openai.com',    color: '#10A37F', free: false },
+    { key: 'anthropic' as const, label: 'Anthropic Claude', placeholder: 'sk-ant-...',   url: 'https://console.anthropic.com/settings/keys',     urlLabel: 'console.anthropic.com',  color: '#D97706', free: false },
+  ];
+
+  return (
+    <div style={{ padding: 24, maxWidth: 680 }}>
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#64748B', fontFamily: 'monospace', marginBottom: 5 }}>SETTINGS</div>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 900, color: '#F1F0FF', marginBottom: 5 }}>AI Keys & Account</h2>
+        <p style={{ fontSize: 13, color: '#64748B' }}>Your keys are stored securely. We never use them for anything except your requests.</p>
+      </div>
+      {demoMode && (
+        <div style={{ padding: '12px 16px', background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 12, marginBottom: 20, fontSize: 13, color: '#A78BFA' }}>
+          <a href="/auth?mode=signup" style={{ color: '#A78BFA', fontWeight: 700 }}>Sign up</a> to save your API keys across devices.
+        </div>
+      )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 24 }}>
+        {PROVIDER_CONFIGS.map(p => (
+          <div key={p.key} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${keys[p.key] ? `${p.color}30` : 'rgba(255,255,255,0.07)'}`, borderRadius: 14, padding: '16px 18px', transition: 'border-color 0.2s' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: keys[p.key] ? '#10B981' : 'rgba(255,255,255,0.15)' }} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#F1F0FF', fontFamily: 'var(--font-display)' }}>{p.label}</span>
+                {p.free && <span style={{ fontSize: 9, color: '#10B981', background: 'rgba(16,185,129,0.1)', padding: '2px 6px', borderRadius: 99, fontFamily: 'monospace' }}>FREE TIER</span>}
+              </div>
+              {keys[p.key] && <span style={{ fontSize: 10, color: '#10B981', fontFamily: 'monospace' }}>✓ SET</span>}
+            </div>
+            <input type="password" placeholder={p.placeholder} value={keys[p.key]} onChange={e => setKeys(k => ({ ...k, [p.key]: e.target.value }))} className="input" style={{ fontSize: 13, marginBottom: 6 }} />
+            <a href={p.url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#475569', textDecoration: 'none' }}>Get key → {p.urlLabel}</a>
+          </div>
+        ))}
+      </div>
+      <button onClick={handleSave} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 8, background: saved ? '#10B981' : '#7C3AED', color: '#fff', border: 'none', borderRadius: 100, padding: '12px 28px', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'var(--font-display)', transition: 'background 0.2s', marginBottom: 32 }}>
+        <Save size={15} />
+        {saving ? 'Saving...' : saved ? '✓ Saved!' : 'Save Keys'}
+      </button>
+      {!demoMode && (
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 24 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#334155', fontFamily: 'monospace', marginBottom: 14 }}>ACCOUNT</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, padding: '12px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12 }}>
+            <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(124,58,237,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#A78BFA' }}>
+              {state.userName?.[0]?.toUpperCase() || '?'}
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#F1F0FF' }}>{state.userName}</div>
+              <div style={{ fontSize: 12, color: '#475569' }}>{state.userEmail}</div>
+            </div>
+          </div>
+          <button onClick={handleSignOut} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.18)', color: '#EF4444', padding: '9px 18px', borderRadius: 100, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            Sign out
+          </button>
+        </div>
+      )}
     </div>
   );
 }

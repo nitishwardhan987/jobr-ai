@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useReducer, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export type TrackStatus = 'applied' | 'interview_1' | 'interview_2' | 'offer' | 'rejected';
@@ -29,7 +29,6 @@ export interface MockMessage {
   timestamp: string;
 }
 
-// ── AI Provider types ─────────────────────────────────────────────────────────
 export type AIProvider = 'gemini-flash' | 'gemini-pro' | 'gpt-4o' | 'gpt-3.5' | 'claude-sonnet' | 'claude-haiku';
 
 export interface AIProviderConfig {
@@ -51,28 +50,28 @@ export const AI_PROVIDERS: AIProviderConfig[] = [
   {
     id: 'gemini-flash',
     label: 'Gemini 1.5 Flash',
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.0-flash',
     provider: 'gemini',
     free: true,
     costNote: 'Free tier · No billing required',
     keyLabel: 'Google AI Studio API Key',
     keyPlaceholder: 'AIzaSy...',
     keyUrl: 'https://aistudio.google.com/app/apikey',
-    keyUrlLabel: 'Get free key at aistudio.google.com',
+    keyUrlLabel: 'aistudio.google.com',
     color: '#4285F4',
     logo: '🔵',
   },
   {
     id: 'gemini-pro',
     label: 'Gemini 1.5 Pro',
-    model: 'gemini-1.5-pro',
+    model: 'gemini-2.0-flash-lite',
     provider: 'gemini',
     free: false,
     costNote: 'Paid · ~$0.0035 per 1K tokens',
     keyLabel: 'Google AI Studio API Key',
     keyPlaceholder: 'AIzaSy...',
     keyUrl: 'https://aistudio.google.com/app/apikey',
-    keyUrlLabel: 'Get key at aistudio.google.com',
+    keyUrlLabel: 'aistudio.google.com',
     color: '#34A853',
     logo: '🟢',
   },
@@ -86,7 +85,7 @@ export const AI_PROVIDERS: AIProviderConfig[] = [
     keyLabel: 'OpenAI API Key',
     keyPlaceholder: 'sk-proj-...',
     keyUrl: 'https://platform.openai.com/api-keys',
-    keyUrlLabel: 'Get key at platform.openai.com',
+    keyUrlLabel: 'platform.openai.com',
     color: '#10A37F',
     logo: '⚫',
   },
@@ -100,7 +99,7 @@ export const AI_PROVIDERS: AIProviderConfig[] = [
     keyLabel: 'OpenAI API Key',
     keyPlaceholder: 'sk-proj-...',
     keyUrl: 'https://platform.openai.com/api-keys',
-    keyUrlLabel: 'Get key at platform.openai.com',
+    keyUrlLabel: 'platform.openai.com',
     color: '#10A37F',
     logo: '⚫',
   },
@@ -114,7 +113,7 @@ export const AI_PROVIDERS: AIProviderConfig[] = [
     keyLabel: 'Anthropic API Key',
     keyPlaceholder: 'sk-ant-...',
     keyUrl: 'https://console.anthropic.com/settings/keys',
-    keyUrlLabel: 'Get key at console.anthropic.com',
+    keyUrlLabel: 'console.anthropic.com',
     color: '#D97706',
     logo: '🟠',
   },
@@ -128,20 +127,18 @@ export const AI_PROVIDERS: AIProviderConfig[] = [
     keyLabel: 'Anthropic API Key',
     keyPlaceholder: 'sk-ant-...',
     keyUrl: 'https://console.anthropic.com/settings/keys',
-    keyUrlLabel: 'Get key at console.anthropic.com',
+    keyUrlLabel: 'console.anthropic.com',
     color: '#D97706',
     logo: '🟠',
   },
 ];
 
-// Keys stored by provider family: gemini, openai, anthropic
 export type ProviderKeys = {
   gemini: string;
   openai: string;
   anthropic: string;
 };
 
-// Per-feature provider override
 export type FeatureProviders = {
   cv: AIProvider;
   interview: AIProvider;
@@ -161,10 +158,8 @@ export interface PrepState {
   showProModal: boolean;
   userEmail: string;
   userName: string;
-  // Multi-provider API keys
   providerKeys: ProviderKeys;
   featureProviders: FeatureProviders;
-  // Legacy single key for backward compat
   apiKey: string;
 }
 
@@ -181,6 +176,7 @@ type PrepAction =
   | { type: 'SET_MOCK_LOADING'; loading: boolean }
   | { type: 'SET_MOCK_ACTIVE'; active: boolean }
   | { type: 'INCREMENT_TRIALS' }
+  | { type: 'SET_TRIALS'; count: number }
   | { type: 'SET_SHOW_PRO_MODAL'; show: boolean }
   | { type: 'SET_USER'; email: string; name: string }
   | { type: 'SET_API_KEY'; key: string }
@@ -223,19 +219,30 @@ function reducer(state: PrepState, action: PrepAction): PrepState {
     case 'UPDATE_TRACK':
       return { ...state, tracks: state.tracks.map(t => t.id === action.track.id ? { ...t, ...action.track, updated_at: new Date().toISOString() } : t) };
     case 'DELETE_TRACK':
-      return { ...state, tracks: state.tracks.filter(t => t.id !== action.id), activeTrackId: state.activeTrackId === action.id ? (state.tracks.filter(t => t.id !== action.id)[0]?.id || null) : state.activeTrackId };
+      return {
+        ...state,
+        tracks: state.tracks.filter(t => t.id !== action.id),
+        activeTrackId: state.activeTrackId === action.id
+          ? (state.tracks.filter(t => t.id !== action.id)[0]?.id || null)
+          : state.activeTrackId,
+      };
     case 'SET_TRACKS_LOADING': return { ...state, tracksLoading: action.loading };
     case 'SET_MOCK_SESSION': return { ...state, mockSession: action.messages };
     case 'ADD_MOCK_MESSAGE': return { ...state, mockSession: [...state.mockSession, action.message] };
     case 'SET_MOCK_LOADING': return { ...state, mockLoading: action.loading };
     case 'SET_MOCK_ACTIVE': return { ...state, mockActive: action.active };
     case 'INCREMENT_TRIALS': return { ...state, trialsUsed: state.trialsUsed + 1 };
+    case 'SET_TRIALS': return { ...state, trialsUsed: action.count };
     case 'SET_SHOW_PRO_MODAL': return { ...state, showProModal: action.show };
     case 'SET_USER': return { ...state, userEmail: action.email, userName: action.name };
     case 'SET_API_KEY':
       return { ...state, apiKey: action.key, providerKeys: { ...state.providerKeys, gemini: action.key } };
     case 'SET_PROVIDER_KEY':
-      return { ...state, providerKeys: { ...state.providerKeys, [action.provider]: action.key }, apiKey: action.provider === 'gemini' ? action.key : state.apiKey };
+      return {
+        ...state,
+        providerKeys: { ...state.providerKeys, [action.provider]: action.key },
+        apiKey: action.provider === 'gemini' ? action.key : state.apiKey,
+      };
     case 'SET_FEATURE_PROVIDER':
       return { ...state, featureProviders: { ...state.featureProviders, [action.feature]: action.provider } };
     case 'RESET_MOCK': return { ...state, mockSession: [], mockActive: false, mockLoading: false };
@@ -246,6 +253,7 @@ function reducer(state: PrepState, action: PrepAction): PrepState {
 interface PrepContextValue {
   state: PrepState;
   dispatch: React.Dispatch<PrepAction>;
+  authLoading: boolean;
   loadTracks: () => Promise<void>;
   addTrack: (data: { company: string; role: string; jd_text: string; cv_text: string }) => Promise<void>;
   updateTrackStatus: (id: string, status: TrackStatus, extra?: Partial<JobTrack>) => Promise<void>;
@@ -265,39 +273,81 @@ const PrepContext = createContext<PrepContextValue | null>(null);
 
 export function PrepProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [authLoading, setAuthLoading] = useState(true);
   const activeTrack = state.tracks.find(t => t.id === state.activeTrackId) || null;
 
   useEffect(() => {
-    const session = localStorage.getItem('jobr_session') || localStorage.getItem('jobr_user');
-    if (session) {
-      try {
-        const p = JSON.parse(session);
-        dispatch({ type: 'SET_USER', email: p.email || '', name: p.name || p.email?.split('@')[0] || '' });
-      } catch {}
-    }
-    // Load all provider keys
-    const geminiKey    = localStorage.getItem('jobr_gemini_key') || '';
-    const openaiKey    = localStorage.getItem('jobr_openai_key') || '';
-    const anthropicKey = localStorage.getItem('jobr_anthropic_key') || '';
-    if (geminiKey)    dispatch({ type: 'SET_PROVIDER_KEY', provider: 'gemini',    key: geminiKey });
-    if (openaiKey)    dispatch({ type: 'SET_PROVIDER_KEY', provider: 'openai',    key: openaiKey });
-    if (anthropicKey) dispatch({ type: 'SET_PROVIDER_KEY', provider: 'anthropic', key: anthropicKey });
-    // Load feature providers
-    const saved = localStorage.getItem('jobr_feature_providers');
-    if (saved) {
-      try {
-        const fp = JSON.parse(saved);
-        Object.keys(fp).forEach(feature => {
-          dispatch({ type: 'SET_FEATURE_PROVIDER', feature: feature as keyof FeatureProviders, provider: fp[feature] });
-        });
-      } catch {}
-    }
-    // Trials
-    const trials = parseInt(localStorage.getItem('jobr_mock_trials') || '0');
-    for (let i = 0; i < trials; i++) dispatch({ type: 'INCREMENT_TRIALS' });
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user?.email) {
+        const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0] || '';
+        dispatch({ type: 'SET_USER', email: user.email, name });
+
+        const { data: settings } = await supabase
+          .from('user_settings')
+          .select('mock_trials_used, gemini_key, openai_key, anthropic_key')
+          .eq('email', user.email)
+          .single();
+
+        if (settings) {
+          if (settings.mock_trials_used) dispatch({ type: 'SET_TRIALS', count: settings.mock_trials_used });
+          if (settings.gemini_key)    dispatch({ type: 'SET_PROVIDER_KEY', provider: 'gemini',    key: settings.gemini_key });
+          if (settings.openai_key)    dispatch({ type: 'SET_PROVIDER_KEY', provider: 'openai',    key: settings.openai_key });
+          if (settings.anthropic_key) dispatch({ type: 'SET_PROVIDER_KEY', provider: 'anthropic', key: settings.anthropic_key });
+        } else {
+          // Fallback to localStorage for existing users
+          const geminiKey    = localStorage.getItem('jobr_gemini_key') || '';
+          const openaiKey    = localStorage.getItem('jobr_openai_key') || '';
+          const anthropicKey = localStorage.getItem('jobr_anthropic_key') || '';
+          if (geminiKey)    dispatch({ type: 'SET_PROVIDER_KEY', provider: 'gemini',    key: geminiKey });
+          if (openaiKey)    dispatch({ type: 'SET_PROVIDER_KEY', provider: 'openai',    key: openaiKey });
+          if (anthropicKey) dispatch({ type: 'SET_PROVIDER_KEY', provider: 'anthropic', key: anthropicKey });
+          const trials = parseInt(localStorage.getItem('jobr_mock_trials') || '0');
+          if (trials > 0) dispatch({ type: 'SET_TRIALS', count: trials });
+        }
+      } else {
+        // Guest: load keys from localStorage only
+        const geminiKey    = localStorage.getItem('jobr_gemini_key') || '';
+        const openaiKey    = localStorage.getItem('jobr_openai_key') || '';
+        const anthropicKey = localStorage.getItem('jobr_anthropic_key') || '';
+        if (geminiKey)    dispatch({ type: 'SET_PROVIDER_KEY', provider: 'gemini',    key: geminiKey });
+        if (openaiKey)    dispatch({ type: 'SET_PROVIDER_KEY', provider: 'openai',    key: openaiKey });
+        if (anthropicKey) dispatch({ type: 'SET_PROVIDER_KEY', provider: 'anthropic', key: anthropicKey });
+        const trials = parseInt(localStorage.getItem('jobr_mock_trials') || '0');
+        if (trials > 0) dispatch({ type: 'SET_TRIALS', count: trials });
+      }
+
+      const saved = localStorage.getItem('jobr_feature_providers');
+      if (saved) {
+        try {
+          const fp = JSON.parse(saved);
+          Object.keys(fp).forEach(feature => {
+            dispatch({ type: 'SET_FEATURE_PROVIDER', feature: feature as keyof FeatureProviders, provider: fp[feature] });
+          });
+        } catch {}
+      }
+
+      setAuthLoading(false);
+    };
+
+    init();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        dispatch({ type: 'SET_USER', email: '', name: '' });
+        dispatch({ type: 'SET_TRACKS', tracks: [] });
+      }
+      if (event === 'SIGNED_IN' && session?.user) {
+        const u = session.user;
+        const name = u.user_metadata?.full_name || u.user_metadata?.name || u.email?.split('@')[0] || '';
+        dispatch({ type: 'SET_USER', email: u.email || '', name });
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  // ── Helpers ─────────────────────────────────────────────────────────────────
   const getActiveProvider = (feature: keyof FeatureProviders): AIProviderConfig => {
     const providerId = state.featureProviders[feature];
     return AI_PROVIDERS.find(p => p.id === providerId) || AI_PROVIDERS[0];
@@ -308,15 +358,13 @@ export function PrepProvider({ children }: { children: ReactNode }) {
     return state.providerKeys[provider.provider] || '';
   };
 
-  // ── Universal AI caller ──────────────────────────────────────────────────────
   const callAI = async (prompt: string, feature: keyof FeatureProviders, overrideProvider?: AIProvider): Promise<string> => {
     const providerId = overrideProvider || state.featureProviders[feature];
     const providerCfg = AI_PROVIDERS.find(p => p.id === providerId) || AI_PROVIDERS[0];
     const key = state.providerKeys[providerCfg.provider];
 
-    if (!key) throw new Error(`No API key set for ${providerCfg.label}. Go to Settings → AI Keys to add your key.`);
+    if (!key) throw new Error(`No API key set for ${providerCfg.label}. Go to Settings to add your key.`);
 
-    // ── Gemini ──
     if (providerCfg.provider === 'gemini') {
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${providerCfg.model}:generateContent?key=${key}`,
@@ -334,7 +382,6 @@ export function PrepProvider({ children }: { children: ReactNode }) {
       return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     }
 
-    // ── OpenAI ──
     if (providerCfg.provider === 'openai') {
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -351,7 +398,6 @@ export function PrepProvider({ children }: { children: ReactNode }) {
       return data.choices?.[0]?.message?.content || '';
     }
 
-    // ── Anthropic ──
     if (providerCfg.provider === 'anthropic') {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -375,26 +421,28 @@ export function PrepProvider({ children }: { children: ReactNode }) {
     throw new Error('Unknown provider');
   };
 
-  // ── Load tracks ──────────────────────────────────────────────────────────────
   const loadTracks = async () => {
     dispatch({ type: 'SET_TRACKS_LOADING', loading: true });
     try {
-      const session = localStorage.getItem('jobr_session') || localStorage.getItem('jobr_user');
-      if (!session) {
+      const { data: { user } } = await supabase.auth.getUser();
+      const email = user?.email || state.userEmail;
+      if (!email) {
         const local = localStorage.getItem('jobr_tracks');
         const tracks = local ? JSON.parse(local) : SEED_TRACKS;
         dispatch({ type: 'SET_TRACKS', tracks });
         if (tracks.length > 0) dispatch({ type: 'SET_ACTIVE_TRACK', id: tracks[0].id });
         return;
       }
-      const { email } = JSON.parse(session);
-      const { data } = await supabase.from('job_tracks').select('*').eq('user_email', email).order('created_at', { ascending: false });
-      const tracks = data && data.length > 0 ? data : SEED_TRACKS;
+      const { data } = await supabase
+        .from('job_tracks')
+        .select('*')
+        .eq('user_email', email)
+        .order('created_at', { ascending: false });
+      const tracks = data && data.length > 0 ? data : [];
       dispatch({ type: 'SET_TRACKS', tracks });
       if (tracks.length > 0) dispatch({ type: 'SET_ACTIVE_TRACK', id: tracks[0].id });
     } catch {
-      dispatch({ type: 'SET_TRACKS', tracks: SEED_TRACKS });
-      dispatch({ type: 'SET_ACTIVE_TRACK', id: SEED_TRACKS[0].id });
+      dispatch({ type: 'SET_TRACKS', tracks: [] });
     } finally {
       dispatch({ type: 'SET_TRACKS_LOADING', loading: false });
     }
@@ -501,7 +549,15 @@ Begin with a warm professional greeting and ask your first targeted question. Ke
       dispatch({ type: 'SET_MOCK_LOADING', loading: false });
     }
     dispatch({ type: 'INCREMENT_TRIALS' });
-    localStorage.setItem('jobr_mock_trials', (state.trialsUsed + 1).toString());
+    const newTrialCount = state.trialsUsed + 1;
+    localStorage.setItem('jobr_mock_trials', newTrialCount.toString());
+    if (state.userEmail) {
+      await supabase.from('user_settings').upsert({
+        email: state.userEmail,
+        mock_trials_used: newTrialCount,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'email' });
+    }
     await updateTrackStatus(track.id, track.status, { trials_used: track.trials_used + 1 });
   };
 
@@ -535,6 +591,7 @@ Instructions:
   return (
     <PrepContext.Provider value={{
       state, dispatch,
+      authLoading,
       loadTracks, addTrack, updateTrackStatus, deleteTrack,
       startMockInterview, sendMockAnswer, calculateJobrScore, generateRoadmap,
       callAI, getActiveKey, getActiveProvider,

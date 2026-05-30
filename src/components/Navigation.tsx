@@ -17,17 +17,41 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    const s = localStorage.getItem('jobr_session') || localStorage.getItem('jobr_user');
-    if (s) { try { setUser(JSON.parse(s)); } catch {} }
-  }, []);
+  setMounted(true);
+  supabase.auth.getUser().then(({ data: { user } }) => {
+    if (user) {
+      setUser({
+        email: user.email,
+        name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || '',
+        photo: user.user_metadata?.avatar_url || user.user_metadata?.picture || '',
+      });
+    }
+  });
 
-  const handleSignOut = () => {
-    localStorage.removeItem('jobr_session');
-    localStorage.removeItem('jobr_user');
-    setUser(null);
-    router.push('/');
-  };
+  // Also listen for auth changes so header updates instantly on sign in/out
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    if (session?.user) {
+      const u = session.user;
+      setUser({
+        email: u.email,
+        name: u.user_metadata?.full_name || u.user_metadata?.name || u.email?.split('@')[0] || '',
+        photo: u.user_metadata?.avatar_url || u.user_metadata?.picture || '',
+      });
+    } else {
+      setUser(null);
+    }
+  });
+
+  return () => subscription.unsubscribe();
+}, []);
+
+const handleSignOut = async () => {
+  await supabase.auth.signOut();
+  localStorage.removeItem('jobr_session');
+  localStorage.removeItem('jobr_user');
+  setUser(null);
+  router.push('/');
+};
 
   const pageLabel: Record<string, string> = {
     '/dashboard': 'Prep.Jobr',
