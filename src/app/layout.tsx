@@ -4,9 +4,14 @@ import { Header, Footer } from '@/components/Navigation';
 import BugWidget from '@/components/BugWidget';
 
 export const metadata: Metadata = {
-  title: 'Jobr — India\'s AI Career Platform',
-  description: 'Optimize your CV with AI, source verified mentors for your edtech, or order custom merch.',
+  title: 'Jobr — Career Operating System for Students',
+  description: 'Prepare for interviews, improve your resume, connect with mentors, and grow your career — all from one platform.',
   icons: { icon: '/favicon.ico' },
+  openGraph: {
+    title: 'Jobr — Career Operating System for Students',
+    description: 'Everything You Need To Become Job Ready.',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -14,8 +19,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-        <link rel="preconnect" href="https://api.fontshare.com" />
-        <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800,900&display=swap" rel="stylesheet" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body>
         <Header />
