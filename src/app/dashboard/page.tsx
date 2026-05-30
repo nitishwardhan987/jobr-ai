@@ -250,6 +250,46 @@ function TrackWorkspace({ demoMode }: { demoMode: boolean }) {
   const [interviewNotes, setInterviewNotes] = useState('');
   const [scoringLoading, setScoringLoading] = useState(false);
   const [roadmapLoading, setRoadmapLoading] = useState(false);
+  const [trackCvText, setTrackCvText] = useState('');
+  const [trackCvFile, setTrackCvFile] = useState<string | null>(null);
+  const [trackCvUploading, setTrackCvUploading] = useState(false);
+  const [trackCvError, setTrackCvError] = useState('');
+  const trackCvRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('jobr_last_cv') || '';
+    setTrackCvText(saved);
+  }, [activeTrack?.id]);
+
+  const handleTrackCvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setTrackCvUploading(true);
+    setTrackCvFile(null);
+    setTrackCvError('');
+    try {
+      if (file.type === 'application/pdf') {
+        const form = new FormData();
+        form.append('file', file);
+        const res = await fetch('/api/extract-pdf', { method: 'POST', body: form });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'PDF extraction failed');
+        setTrackCvText(data.text);
+        localStorage.setItem('jobr_last_cv', data.text);
+        setTrackCvFile(file.name);
+      } else {
+        const text = await file.text();
+        setTrackCvText(text);
+        localStorage.setItem('jobr_last_cv', text);
+        setTrackCvFile(file.name);
+      }
+    } catch (err: any) {
+      setTrackCvError(err.message || 'Could not read file.');
+    } finally {
+      setTrackCvUploading(false);
+      if (trackCvRef.current) trackCvRef.current.value = '';
+    }
+  };
 
   if (!activeTrack) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: 48, minHeight: 400, textAlign: 'center' }}>
@@ -331,9 +371,14 @@ function TrackWorkspace({ demoMode }: { demoMode: boolean }) {
             <div style={{ fontSize: 30, fontWeight: 900, color: s.color, fontFamily: 'var(--font-display)', lineHeight: 1 }}>{s.value}</div>
             <div style={{ fontSize: 11, color: '#A1A1AA', marginTop: 2 }}>{s.sub}</div>
             {s.showBtn && activeTrack.jd_text && !demoMode && (
-              <button onClick={async () => { setScoringLoading(true); await calculateJobrScore(activeTrack); setScoringLoading(false); }} disabled={scoringLoading} style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 4, background: '#F8F5F0', border: '1px solid #E7E5E4', borderRadius: 100, padding: '4px 9px', color: '#71717A', fontSize: 10, cursor: 'pointer', fontWeight: 600 }}>
+              <button onClick={async () => {
+                if (!trackCvText.trim()) return;
+                setScoringLoading(true);
+                await calculateJobrScore({ ...activeTrack, cv_text: trackCvText });
+                setScoringLoading(false);
+              }} disabled={scoringLoading || !trackCvText.trim()} style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 4, background: trackCvText.trim() ? '#F8F5F0' : 'rgba(239,68,68,0.05)', border: `1px solid ${trackCvText.trim() ? '#E7E5E4' : 'rgba(239,68,68,0.2)'}`, borderRadius: 100, padding: '4px 9px', color: trackCvText.trim() ? '#71717A' : '#EF4444', fontSize: 10, cursor: trackCvText.trim() ? 'pointer' : 'not-allowed', fontWeight: 600 }}>
                 <RefreshCw size={9} style={scoringLoading ? { animation: 'spin 1s linear infinite' } : {}} />
-                {scoringLoading ? 'Scoring...' : 'Score me'}
+                {scoringLoading ? 'Scoring...' : trackCvText.trim() ? 'Score me' : 'Add CV first'}
               </button>
             )}
           </div>
@@ -352,6 +397,50 @@ function TrackWorkspace({ demoMode }: { demoMode: boolean }) {
               <div style={{ fontSize: 10, color: '#EF4444', marginBottom: 7, fontWeight: 600, fontFamily: 'monospace' }}>✗ GAPS</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>{(aiFeedback.missing_skills || []).map((s: string) => <span key={s} style={{ fontSize: 11, color: '#EF4444', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', padding: '3px 8px', borderRadius: 99 }}>{s}</span>)}</div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* CV for Jobr Score */}
+      {!demoMode && activeTrack.jd_text && (
+        <div style={{ background: '#FFFFFF', border: '1px solid #E7E5E4', borderRadius: 14, padding: 18, marginBottom: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#2563EB', fontFamily: 'monospace' }}>YOUR CV — FOR SCORING</div>
+            {trackCvFile && <span style={{ fontSize: 10, color: '#16A34A', fontFamily: 'monospace' }}>✓ {trackCvFile}</span>}
+          </div>
+          <div
+            onClick={() => trackCvRef.current?.click()}
+            onDragOver={e => { e.preventDefault(); (e.currentTarget as HTMLElement).style.borderColor = '#2563EB'; }}
+            onDragLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#E7E5E4'; }}
+            onDrop={e => {
+              e.preventDefault();
+              (e.currentTarget as HTMLElement).style.borderColor = '#E7E5E4';
+              const file = e.dataTransfer.files?.[0];
+              if (file && trackCvRef.current) {
+                const dt = new DataTransfer(); dt.items.add(file);
+                trackCvRef.current.files = dt.files;
+                trackCvRef.current.dispatchEvent(new Event('change', { bubbles: true }));
+              }
+            }}
+            style={{ border: '1.5px dashed #E7E5E4', borderRadius: 8, padding: '8px 12px', marginBottom: 6, cursor: 'pointer', background: '#FAFAF9', display: 'flex', alignItems: 'center', gap: 8, transition: 'border-color 0.15s' }}
+          >
+            <input ref={trackCvRef} type="file" accept=".pdf,.txt,.doc,.docx" style={{ display: 'none' }} onChange={handleTrackCvUpload} />
+            {trackCvUploading ? (
+              <><RefreshCw size={12} color="#2563EB" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }} /><span style={{ fontSize: 11, color: '#71717A' }}>Extracting…</span></>
+            ) : (
+              <><Upload size={12} color="#A1A1AA" style={{ flexShrink: 0 }} /><span style={{ fontSize: 11, color: '#71717A' }}>Upload CV <span style={{ color: '#A1A1AA' }}>(PDF, TXT)</span></span><span style={{ fontSize: 10, color: '#A1A1AA', marginLeft: 'auto' }}>or drag & drop</span></>
+            )}
+          </div>
+          {trackCvError && <div style={{ fontSize: 11, color: '#EF4444', marginBottom: 4 }}>{trackCvError}</div>}
+          <textarea
+            className="input"
+            placeholder="…or paste your CV here to get a Jobr Score"
+            value={trackCvText}
+            onChange={e => { setTrackCvText(e.target.value); setTrackCvFile(null); localStorage.setItem('jobr_last_cv', e.target.value); }}
+            style={{ height: 90, resize: 'none', fontSize: 12 }}
+          />
+          <div style={{ fontSize: 10, color: '#A1A1AA', marginTop: 4 }}>
+            CV is matched against the job description to compute your Jobr Score — no optimization needed.
           </div>
         </div>
       )}
@@ -479,37 +568,24 @@ function CVPrepTab({ demoMode }: { demoMode: boolean }) {
     setUploadedFile(null);
     try {
       if (file.type === 'application/pdf') {
-        // Extract text from PDF using FileReader + basic text extraction
-        const arrayBuffer = await file.arrayBuffer();
-        const uint8 = new Uint8Array(arrayBuffer);
-        // Decode readable ASCII strings from the PDF binary
-        let text = '';
-        for (let i = 0; i < uint8.length - 1; i++) {
-          const c = uint8[i];
-          if (c >= 32 && c < 127) text += String.fromCharCode(c);
-          else if (c === 10 || c === 13) text += '\n';
-        }
-        // Clean up: collapse runs of spaces/junk, keep meaningful lines
-        const lines = text
-          .split('\n')
-          .map(l => l.replace(/[^\x20-\x7E]/g, ' ').replace(/\s{3,}/g, '  ').trim())
-          .filter(l => l.length > 2);
-        const cleaned = lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
-        setCvText(cleaned);
-        localStorage.setItem('jobr_last_cv', cleaned);
+        const form = new FormData();
+        form.append('file', file);
+        const res = await fetch('/api/extract-pdf', { method: 'POST', body: form });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'PDF extraction failed');
+        setCvText(data.text);
+        localStorage.setItem('jobr_last_cv', data.text);
         setUploadedFile(file.name);
       } else {
-        // Plain text / doc fallback — read as text
         const text = await file.text();
         setCvText(text);
         localStorage.setItem('jobr_last_cv', text);
         setUploadedFile(file.name);
       }
-    } catch {
-      setCvText('');
+    } catch (err: any) {
+      setError(err.message || 'Could not read file. Please paste your CV manually.');
     } finally {
       setUploading(false);
-      // Reset input so same file can be re-uploaded
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
