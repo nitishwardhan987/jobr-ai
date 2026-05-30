@@ -1,11 +1,11 @@
 'use client';
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   FileText, Briefcase, Mic, Users, BookOpen, Settings,
   Plus, Trash2, Send, Key, Trophy, AlertCircle,
   Clock, CheckCircle2, Zap, ExternalLink,
   Calendar, RefreshCw, X, Sparkles, Lock,
-  MessageSquare, LogIn, Download, Save,
+  MessageSquare, LogIn, Download, Save, Upload,
 } from 'lucide-react';
 import {
   PrepProvider, usePrep, JobTrack, TrackStatus,
@@ -468,6 +468,51 @@ function CVPrepTab({ demoMode }: { demoMode: boolean }) {
   const [loading,    setLoading]     = useState(false);
   const [keyTesting, setKeyTesting]  = useState(false);
   const [keyValid,   setKeyValid]    = useState<boolean | null>(null);
+  const [uploading,  setUploading]   = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadedFile(null);
+    try {
+      if (file.type === 'application/pdf') {
+        // Extract text from PDF using FileReader + basic text extraction
+        const arrayBuffer = await file.arrayBuffer();
+        const uint8 = new Uint8Array(arrayBuffer);
+        // Decode readable ASCII strings from the PDF binary
+        let text = '';
+        for (let i = 0; i < uint8.length - 1; i++) {
+          const c = uint8[i];
+          if (c >= 32 && c < 127) text += String.fromCharCode(c);
+          else if (c === 10 || c === 13) text += '\n';
+        }
+        // Clean up: collapse runs of spaces/junk, keep meaningful lines
+        const lines = text
+          .split('\n')
+          .map(l => l.replace(/[^\x20-\x7E]/g, ' ').replace(/\s{3,}/g, '  ').trim())
+          .filter(l => l.length > 2);
+        const cleaned = lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+        setCvText(cleaned);
+        localStorage.setItem('jobr_last_cv', cleaned);
+        setUploadedFile(file.name);
+      } else {
+        // Plain text / doc fallback — read as text
+        const text = await file.text();
+        setCvText(text);
+        localStorage.setItem('jobr_last_cv', text);
+        setUploadedFile(file.name);
+      }
+    } catch {
+      setCvText('');
+    } finally {
+      setUploading(false);
+      // Reset input so same file can be re-uploaded
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
   const [result,     setResult]      = useState<any>(null);
   const [error,      setError]       = useState('');
   const [cvMeta,     setCvMeta]      = useState<{ mode?: string; freeUsed?: number; freeLimit?: number; creditsRemaining?: number } | null>(null);
@@ -615,8 +660,38 @@ function CVPrepTab({ demoMode }: { demoMode: boolean }) {
         </div>
 
         <div>
-          <label style={{ fontSize: 10, color: '#71717A', fontFamily: 'monospace', display: 'block', marginBottom: 5 }}>YOUR CV</label>
-          <textarea className="input" placeholder="Paste your CV text here..." value={cvText} onChange={e => { setCvText(e.target.value); localStorage.setItem('jobr_last_cv', e.target.value); }} style={{ height: 150, resize: 'none', fontSize: 12 }} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+            <label style={{ fontSize: 10, color: '#71717A', fontFamily: 'monospace' }}>YOUR CV</label>
+            {uploadedFile && (
+              <span style={{ fontSize: 10, color: '#16A34A', fontFamily: 'monospace' }}>✓ {uploadedFile}</span>
+            )}
+          </div>
+          {/* Upload zone */}
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={e => { e.preventDefault(); (e.currentTarget as HTMLElement).style.borderColor = '#F97316'; }}
+            onDragLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#E7E5E4'; }}
+            onDrop={e => {
+              e.preventDefault();
+              (e.currentTarget as HTMLElement).style.borderColor = '#E7E5E4';
+              const file = e.dataTransfer.files?.[0];
+              if (file && fileInputRef.current) {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                fileInputRef.current.files = dt.files;
+                fileInputRef.current.dispatchEvent(new Event('change', { bubbles: true }));
+              }
+            }}
+            style={{ border: '1.5px dashed #E7E5E4', borderRadius: 10, padding: '10px 12px', marginBottom: 6, cursor: 'pointer', background: '#FAFAF9', display: 'flex', alignItems: 'center', gap: 10, transition: 'border-color 0.15s' }}
+          >
+            <input ref={fileInputRef} type="file" accept=".pdf,.txt,.doc,.docx" style={{ display: 'none' }} onChange={handleFileUpload} />
+            {uploading ? (
+              <><RefreshCw size={13} color="#F97316" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }} /><span style={{ fontSize: 11, color: '#71717A' }}>Extracting text…</span></>
+            ) : (
+              <><Upload size={13} color="#A1A1AA" style={{ flexShrink: 0 }} /><span style={{ fontSize: 11, color: '#71717A' }}>Upload CV <span style={{ color: '#A1A1AA' }}>(PDF, TXT, DOC)</span></span><span style={{ fontSize: 10, color: '#A1A1AA', marginLeft: 'auto' }}>or drag & drop</span></>
+            )}
+          </div>
+          <textarea className="input" placeholder="…or paste your CV text here" value={cvText} onChange={e => { setCvText(e.target.value); setUploadedFile(null); localStorage.setItem('jobr_last_cv', e.target.value); }} style={{ height: 130, resize: 'none', fontSize: 12 }} />
         </div>
         <div>
           <label style={{ fontSize: 10, color: '#71717A', fontFamily: 'monospace', display: 'block', marginBottom: 5 }}>JOB DESCRIPTION</label>
