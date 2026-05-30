@@ -3,6 +3,8 @@ import './globals.css';
 import { Header, Footer } from '@/components/Navigation';
 import BugWidget from '@/components/BugWidget';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Jobr — Career Operating System for Students',
   description: 'Prepare for interviews, improve your resume, connect with mentors, and grow your career — all from one platform.',

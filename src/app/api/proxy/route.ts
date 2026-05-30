@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT    = 20;
@@ -178,7 +180,7 @@ export async function POST(req: NextRequest) {
       }, { status: 401 });
     }
 
-    const { data: profile } = await supabaseAdmin
+    const { data: profile } = await getSupabaseAdmin()
       .from('user_profiles')
       .select('wallet_credits, free_cv_used')
       .eq('email', userEmail)
@@ -194,7 +196,7 @@ export async function POST(req: NextRequest) {
     // Free tier — use Jobr's key, no charge
     if (freeUsed < FREE_CV_LIMIT) {
       const text = await callJobrGemini(prompt);
-      await supabaseAdmin
+      await getSupabaseAdmin()
         .from('user_profiles')
         .update({ free_cv_used: freeUsed + 1, updated_at: new Date().toISOString() })
         .eq('email', userEmail);
@@ -218,12 +220,12 @@ export async function POST(req: NextRequest) {
     // Deduct 1 credit and call Jobr's key
     const text = await callJobrGemini(prompt);
 
-    await supabaseAdmin
+    await getSupabaseAdmin()
       .from('user_profiles')
       .update({ wallet_credits: walletCredits - 1, updated_at: new Date().toISOString() })
       .eq('email', userEmail);
 
-    await supabaseAdmin.from('credit_transactions').insert({
+    await getSupabaseAdmin().from('credit_transactions').insert({
       user_email: userEmail,
       type:       'deduct',
       credits:    1,
