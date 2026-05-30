@@ -42,27 +42,27 @@ export default function MerchPage() {
   }
 
   return (
-  <div style={{ background: '#1C1C2E', minHeight: '100vh' }}>
+  <div style={{ background: '#F8F5F0', minHeight: '100vh' }}>
 
     {/* ── MERCH.JOBR HERO ── */}
-    <div style={{ background: 'linear-gradient(145deg, rgba(16,185,129,0.12) 0%, transparent 60%)', borderBottom: '1px solid rgba(16,185,129,0.12)', padding: 'clamp(40px,6vw,72px) 24px 48px' }}>
+    <div style={{ background: 'linear-gradient(145deg, rgba(22,163,74,0.06) 0%, transparent 60%)', borderBottom: '1px solid #E7E5E4', padding: 'clamp(80px,10vw,120px) 24px clamp(40px,5vw,64px)' }}>
       <div style={{ maxWidth: 1120, margin: '0 auto' }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.22)', borderRadius: 100, padding: '5px 14px', marginBottom: 20 }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', animation: 'pulse-dot 2s infinite' }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#10B981', fontFamily: 'monospace', letterSpacing: '0.1em' }}>MERCH.JOBR</span>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 100, padding: '5px 14px', marginBottom: 20 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#16A34A', animation: 'pulse-dot 2s infinite' }} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#15803D', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>MERCH.JOBR</span>
         </div>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(32px,5vw,60px)', fontWeight: 900, color: '#F1F0FF', letterSpacing: '-0.03em', lineHeight: 1.05, marginBottom: 14 }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(32px,5vw,60px)', fontWeight: 900, color: '#18181B', letterSpacing: '-0.04em', lineHeight: 1.05, marginBottom: 14 }}>
           Your brand.<br />
-          <span style={{ background: 'linear-gradient(135deg, #10B981, #06B6D4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>On everything.</span>
+          <span style={{ color: '#16A34A' }}>On everything.</span>
         </h1>
-        <p style={{ fontSize: 'clamp(14px,2vw,18px)', color: '#64748B', maxWidth: 520, lineHeight: 1.65, marginBottom: 28 }}>
+        <p style={{ fontSize: 'clamp(14px,2vw,18px)', color: '#52525B', maxWidth: 520, lineHeight: 1.65, marginBottom: 28 }}>
           Custom merchandise for students, teams, and EdTech cohorts. No minimum order headaches. WhatsApp ordering. Delivered across India.
         </p>
         <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center' }}>
           {[{value:'18+',label:'Products'},{value:'₹189',label:'Starting from'},{value:'10+',label:'Units for bulk'},{value:'🇮🇳',label:'Pan India delivery'}].map(s=>(
             <div key={s.label} style={{textAlign:'center'}}>
-              <div style={{fontSize:20,fontWeight:900,color:'#10B981',fontFamily:'var(--font-display)'}}>{s.value}</div>
-              <div style={{fontSize:11,color:'#475569'}}>{s.label}</div>
+              <div style={{fontSize:20,fontWeight:900,color:'#16A34A',fontFamily:'var(--font-display)'}}>{s.value}</div>
+              <div style={{fontSize:11,color:'#71717A'}}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -93,8 +93,8 @@ export default function MerchPage() {
 
         {/* View toggle */}
         <div style={{
-          display: 'flex', borderRadius: 'var(--radius-md)', overflow: 'hidden',
-          border: '1.5px solid var(--border)', background: 'var(--bg-card)',
+          display: 'flex', borderRadius: '12px', overflow: 'hidden',
+          border: '1.5px solid var(--border)', background: '#FFFFFF',
         }}>
           {(['catalogue', 'studio'] as View[]).map(v => (
             <button key={v} onClick={() => {
@@ -180,11 +180,11 @@ function MerchCard({ product, isSelected, onSelect, onCustomize }: {
     <div
       onClick={() => onSelect(product)}
       style={{
-        background: 'var(--bg-card)',
+        background: '#FFFFFF',
         border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
-        borderRadius: 'var(--radius-lg)',
+        borderRadius: 16,
         overflow: 'hidden', cursor: 'pointer',
-        boxShadow: isSelected ? '0 0 0 3px var(--accent-dim)' : 'var(--shadow-sm)',
+        boxShadow: isSelected ? '0 0 0 3px rgba(249,115,22,0.15)' : 'var(--shadow-sm)',
         transition: 'transform 0.15s, box-shadow 0.15s',
         position: 'relative',
       }}
@@ -203,7 +203,7 @@ function MerchCard({ product, isSelected, onSelect, onCustomize }: {
       {/* Image */}
       <div style={{
         width: '100%', aspectRatio: '1',
-        background: 'var(--bg)',
+        background: '#F8F5F0',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 56, overflow: 'hidden', position: 'relative',
       }}>
@@ -249,7 +249,7 @@ function MerchCard({ product, isSelected, onSelect, onCustomize }: {
             width: '100%', padding: '7px',
             fontSize: 11, fontFamily: 'var(--font-mono)',
             letterSpacing: '0.06em', fontWeight: 700,
-            borderRadius: 'var(--radius-sm)',
+            borderRadius: '8px',
             border: isSelected ? '1.5px solid var(--accent)' : '1.5px solid var(--border)',
             background: isSelected ? 'var(--accent)' : 'transparent',
             color: isSelected ? '#fff' : 'var(--text-2)',
@@ -305,7 +305,7 @@ function DesignStudio({ product, onBack }: { product: MerchProduct; onBack: () =
           <div style={{
             width: '100%', maxWidth: 300, aspectRatio: '1',
             background: selectedColor.hex,
-            borderRadius: 'var(--radius-lg)',
+            borderRadius: '16px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 72, position: 'relative', overflow: 'hidden',
           }}>
@@ -362,9 +362,9 @@ function DesignStudio({ product, onBack }: { product: MerchProduct; onBack: () =
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6, marginTop: 8 }}>
               {FONTS.map(f => (
                 <button key={f.value} onClick={() => setSelectedFont(f.value)} style={{
-                  padding: '7px 4px', borderRadius: 'var(--radius-sm)',
+                  padding: '7px 4px', borderRadius: '8px',
                   border: `1.5px solid ${selectedFont === f.value ? 'var(--accent)' : 'var(--border)'}`,
-                  background: selectedFont === f.value ? 'var(--accent-light)' : 'transparent',
+                  background: selectedFont === f.value ? 'var(--accent-soft)' : 'transparent',
                   color: selectedFont === f.value ? 'var(--accent)' : 'var(--text-2)',
                   fontFamily: f.value, fontSize: 12, cursor: 'pointer',
                 }}>
@@ -378,9 +378,9 @@ function DesignStudio({ product, onBack }: { product: MerchProduct; onBack: () =
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6 }}>
               {PLACEMENTS.map(p => (
                 <button key={p} onClick={() => setPlacement(p)} style={{
-                  padding: '7px 4px', borderRadius: 'var(--radius-sm)', fontSize: 11,
+                  padding: '7px 4px', borderRadius: '8px', fontSize: 11,
                   border: `1.5px solid ${placement === p ? 'var(--accent)' : 'var(--border)'}`,
-                  background: placement === p ? 'var(--accent-light)' : 'transparent',
+                  background: placement === p ? 'var(--accent-soft)' : 'transparent',
                   color: placement === p ? 'var(--accent)' : 'var(--text-2)',
                   cursor: 'pointer', textAlign: 'center',
                 }}>
@@ -395,7 +395,7 @@ function DesignStudio({ product, onBack }: { product: MerchProduct; onBack: () =
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {product.sizes.map(s => (
                   <button key={s} onClick={() => setSelectedSize(s)} style={{
-                    padding: '6px 14px', borderRadius: 'var(--radius-sm)',
+                    padding: '6px 14px', borderRadius: '8px',
                     fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700,
                     border: `1.5px solid ${selectedSize === s ? 'var(--accent)' : 'var(--border)'}`,
                     background: selectedSize === s ? 'var(--accent)' : 'transparent',
@@ -412,13 +412,13 @@ function DesignStudio({ product, onBack }: { product: MerchProduct; onBack: () =
           <StudioCard label="Quantity">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <button onClick={() => setQty(q => Math.max(1, q - 1))} style={{
-                width: 32, height: 32, borderRadius: 'var(--radius-sm)', fontSize: 18,
+                width: 32, height: 32, borderRadius: '8px', fontSize: 18,
                 border: '1.5px solid var(--border)', background: 'transparent',
                 color: 'var(--text-1)', cursor: 'pointer',
               }}>−</button>
               <span style={{ fontSize: 18, fontFamily: 'var(--font-mono)', fontWeight: 700, minWidth: 32, textAlign: 'center' }}>{qty}</span>
               <button onClick={() => setQty(q => q + 1)} style={{
-                width: 32, height: 32, borderRadius: 'var(--radius-sm)', fontSize: 18,
+                width: 32, height: 32, borderRadius: '8px', fontSize: 18,
                 border: '1.5px solid var(--border)', background: 'transparent',
                 color: 'var(--text-1)', cursor: 'pointer',
               }}>+</button>
@@ -439,7 +439,7 @@ function DesignStudio({ product, onBack }: { product: MerchProduct; onBack: () =
             <button onClick={handleOrder} style={{
               width: '100%', padding: '12px',
               background: '#25D366', color: '#000', border: 'none',
-              borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 700,
+              borderRadius: '12px', fontSize: 13, fontWeight: 700,
               fontFamily: 'var(--font-mono)', letterSpacing: '0.08em',
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}>
