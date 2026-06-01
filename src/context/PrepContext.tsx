@@ -158,6 +158,7 @@ export interface PrepState {
   showProModal: boolean;
   userEmail: string;
   userName: string;
+  walletCredits: number;
   providerKeys: ProviderKeys;
   featureProviders: FeatureProviders;
   apiKey: string;
@@ -179,6 +180,7 @@ type PrepAction =
   | { type: 'SET_TRIALS'; count: number }
   | { type: 'SET_SHOW_PRO_MODAL'; show: boolean }
   | { type: 'SET_USER'; email: string; name: string }
+  | { type: 'SET_WALLET_CREDITS'; credits: number }
   | { type: 'SET_API_KEY'; key: string }
   | { type: 'SET_PROVIDER_KEY'; provider: keyof ProviderKeys; key: string }
   | { type: 'SET_FEATURE_PROVIDER'; feature: keyof FeatureProviders; provider: AIProvider }
@@ -205,6 +207,7 @@ const initialState: PrepState = {
   showProModal: false,
   userEmail: '',
   userName: '',
+  walletCredits: 0,
   providerKeys: { gemini: '', openai: '', anthropic: '' },
   featureProviders: DEFAULT_FEATURE_PROVIDERS,
   apiKey: '',
@@ -235,6 +238,7 @@ function reducer(state: PrepState, action: PrepAction): PrepState {
     case 'SET_TRIALS': return { ...state, trialsUsed: action.count };
     case 'SET_SHOW_PRO_MODAL': return { ...state, showProModal: action.show };
     case 'SET_USER': return { ...state, userEmail: action.email, userName: action.name };
+    case 'SET_WALLET_CREDITS': return { ...state, walletCredits: action.credits };
     case 'SET_API_KEY':
       return { ...state, apiKey: action.key, providerKeys: { ...state.providerKeys, gemini: action.key } };
     case 'SET_PROVIDER_KEY':
@@ -283,6 +287,10 @@ export function PrepProvider({ children }: { children: ReactNode }) {
       if (user?.email) {
         const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0] || '';
         dispatch({ type: 'SET_USER', email: user.email, name });
+
+        // Load wallet credits
+        const { data: prof } = await supabase.from('user_profiles').select('wallet_credits').eq('email', user.email).single();
+        if (prof) dispatch({ type: 'SET_WALLET_CREDITS', credits: prof.wallet_credits || 0 });
 
         const { data: settings } = await supabase
           .from('user_settings')
@@ -488,22 +496,20 @@ export function PrepProvider({ children }: { children: ReactNode }) {
   };
 
   const calculateJobrScore = async (track: JobTrack) => {
-    if (!track.jd_text && !track.cv_text) return;
-    try {
-      const prompt = `You are a technical recruiter. Analyse this CV against this Job Description and return ONLY a JSON object with no markdown:
+    if (!track.jd_text && !track.cv_text) throw new Error('Add a job description and your CV before scoring.');
+    const prompt = `You are a technical recruiter. Analyse this CV against this Job Description and return ONLY a JSON object with no markdown:
 {"score": <0-100 integer>, "matched_skills": ["skill1","skill2"], "missing_skills": ["skill3","skill4"], "summary": "<2 sentence assessment>"}
 
 CV: ${track.cv_text?.slice(0, 2000) || 'Not provided'}
 JD: ${track.jd_text?.slice(0, 1500) || 'Not provided'}`;
-      const raw  = await callAI(prompt, 'score');
-      const json = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] || '{}');
-      await updateTrackStatus(track.id, track.status, { jobr_score: json.score || 0, ai_feedback: JSON.stringify(json) });
-    } catch {}
+    const raw  = await callAI(prompt, 'score');
+    const json = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] || '{}');
+    if (!json.score) throw new Error('Scoring returned an empty result. Try again.');
+    await updateTrackStatus(track.id, track.status, { jobr_score: json.score, ai_feedback: JSON.stringify(json) });
   };
 
   const generateRoadmap = async (track: JobTrack) => {
-    try {
-      const prompt = `A candidate was rejected from ${track.role} at ${track.company}.
+    const prompt = `A candidate was rejected from ${track.role} at ${track.company}.
 CV: ${track.cv_text?.slice(0, 1500) || 'Not provided'}
 JD: ${track.jd_text?.slice(0, 1000) || 'Not provided'}
 Interview notes: ${track.interview_notes || 'Not provided'}
@@ -520,10 +526,9 @@ Return ONLY this JSON with no markdown:
   "next_target_roles": ["role1","role2"],
   "encouragement": "<1 motivating sentence>"
 }`;
-      const raw  = await callAI(prompt, 'roadmap');
-      const json = raw.match(/\{[\s\S]*\}/)?.[0] || '{}';
-      await updateTrackStatus(track.id, track.status, { improvement_roadmap: json });
-    } catch {}
+    const raw  = await callAI(prompt, 'roadmap');
+    const json = raw.match(/\{[\s\S]*\}/)?.[0] || '{}';
+    await updateTrackStatus(track.id, track.status, { improvement_roadmap: json });
   };
 
   const startMockInterview = async (track: JobTrack) => {

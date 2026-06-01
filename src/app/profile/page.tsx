@@ -81,8 +81,8 @@ export default function ProfilePage() {
       const { data: tx } = await supabase.from('credit_transactions').select('*').eq('user_email', email).order('created_at', { ascending: false }).limit(20);
       setTransactions(tx || []);
 
-      // Load bookings
-      const { data: bk } = await supabase.from('bookings').select('*').eq('student_email', email).order('created_at', { ascending: false }).limit(10);
+      // Load bookings — stored under edtech_email for both students and edtech users
+      const { data: bk } = await supabase.from('bookings').select('*, mentor_profiles(name)').eq('edtech_email', email).order('created_at', { ascending: false }).limit(20);
       setBookings(bk || []);
 
       // Load job tracks
@@ -141,6 +141,20 @@ export default function ProfilePage() {
     localStorage.removeItem('jobr_session');
     localStorage.removeItem('jobr_user');
     router.push('/');
+  };
+
+  const handleCancelBooking = async (bookingId: string, creditsToRefund: number) => {
+    if (!confirm('Cancel this booking? Your credits will be refunded.')) return;
+    try {
+      await supabase.from('bookings').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('id', bookingId);
+      if (creditsToRefund > 0 && profile) {
+        const newBalance = (profile.wallet_credits || 0) + creditsToRefund;
+        await supabase.from('user_profiles').update({ wallet_credits: newBalance, updated_at: new Date().toISOString() }).eq('email', profile.email);
+        await supabase.from('credit_transactions').insert({ user_email: profile.email, type: 'refund', credits: creditsToRefund, note: 'Booking cancelled — credits refunded', created_by: 'system' });
+        setProfile(p => p ? { ...p, wallet_credits: newBalance } : p);
+      }
+      setBookings(b => b.map(bk => bk.id === bookingId ? { ...bk, status: 'cancelled' } : bk));
+    } catch (e: any) { alert('Cancel failed: ' + e.message); }
   };
 
   const handleTopUpRequest = () => {
@@ -352,8 +366,8 @@ export default function ProfilePage() {
                   {bookings.slice(0, 3).map(b => (
                     <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#F8F5F0', border: '1px solid #E7E5E4', borderRadius: 10 }}>
                       <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#18181B', fontFamily: 'var(--font-display)' }}>{b.session_type}</div>
-                        <div style={{ fontSize: 11, color: '#71717A' }}>{b.slot_date} · ₹{b.session_price_credits * 100}</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#18181B', fontFamily: 'var(--font-display)' }}>{b.session_type || b.session_topic}</div>
+                        <div style={{ fontSize: 11, color: '#71717A' }}>{b.mentor_profiles?.name || b.mentor_name || b.mentor_email} · {b.slot_date}</div>
                       </div>
                       <span style={{ fontSize: 10, fontWeight: 700, color: b.status === 'completed' ? '#16A34A' : b.status === 'confirmed' ? '#F97316' : '#71717A', background: b.status === 'completed' ? '#F0FDF4' : '#FFF7ED', padding: '3px 9px', borderRadius: 100, fontFamily: 'monospace' }}>
                         {b.status?.toUpperCase().replace('_', ' ')}
@@ -482,23 +496,34 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {bookings.map(b => (
-                    <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: '#F8F5F0', border: '1px solid #E7E5E4', borderRadius: 10, flexWrap: 'wrap' }}>
-                      <div style={{ flex: 1, minWidth: 150 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#18181B', fontFamily: 'var(--font-display)' }}>{b.session_type}</div>
-                        <div style={{ fontSize: 11, color: '#71717A' }}>with {b.mentor_email} · {b.slot_date}</div>
+                  {bookings.map(b => {
+                    const canCancel = b.status === 'pending_confirmation';
+                    const creditsToRefund = b.credits_total || b.session_price_credits || 0;
+                    const statusColor = b.status === 'completed' ? '#16A34A' : b.status === 'confirmed' ? '#F97316' : b.status === 'cancelled' ? '#A1A1AA' : b.status === 'disputed' ? '#EF4444' : '#71717A';
+                    const statusBg = b.status === 'completed' ? '#F0FDF4' : b.status === 'cancelled' ? '#F4F4F5' : '#FFF7ED';
+                    return (
+                      <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: '#F8F5F0', border: '1px solid #E7E5E4', borderRadius: 10, flexWrap: 'wrap' }}>
+                        <div style={{ flex: 1, minWidth: 150 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#18181B', fontFamily: 'var(--font-display)' }}>{b.session_type || b.session_topic}</div>
+                          <div style={{ fontSize: 11, color: '#71717A' }}>with {b.mentor_profiles?.name || b.mentor_name || b.mentor_email} · {b.slot_date}{b.slot_time ? ` at ${b.slot_time}` : ''}</div>
+                        </div>
+                        {creditsToRefund > 0 && <div style={{ fontSize: 13, color: '#7C3AED', fontWeight: 700 }}>₹{creditsToRefund * 100}</div>}
+                        <span style={{ fontSize: 10, fontWeight: 700, color: statusColor, background: statusBg, padding: '3px 9px', borderRadius: 100, fontFamily: 'monospace', border: `1px solid ${statusColor}30` }}>
+                          {b.status?.toUpperCase().replace(/_/g, ' ')}
+                        </span>
+                        {b.status === 'confirmed' && b.meet_link && (
+                          <a href={b.meet_link} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#7C3AED', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <ExternalLink size={11} /> Join
+                          </a>
+                        )}
+                        {canCancel && (
+                          <button onClick={() => handleCancelBooking(b.id, creditsToRefund)} style={{ fontSize: 11, color: '#EF4444', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', padding: '3px 10px', borderRadius: 100, cursor: 'pointer', fontWeight: 600 }}>
+                            Cancel
+                          </button>
+                        )}
                       </div>
-                      <div style={{ fontSize: 13, color: '#7C3AED', fontWeight: 700 }}>₹{(b.session_price_credits || 0) * 100}</div>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: b.status === 'completed' ? '#16A34A' : b.status === 'confirmed' ? '#F97316' : '#71717A', background: b.status === 'completed' ? '#F0FDF4' : '#FFF7ED', padding: '3px 9px', borderRadius: 100, fontFamily: 'monospace' }}>
-                        {b.status?.toUpperCase().replace('_', ' ')}
-                      </span>
-                      {b.status === 'completed' && b.meet_link && (
-                        <a href={b.meet_link} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#7C3AED', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <ExternalLink size={11} /> Join
-                        </a>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

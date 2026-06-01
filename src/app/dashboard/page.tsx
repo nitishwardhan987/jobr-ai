@@ -136,6 +136,12 @@ function PrepInner() {
             </button>
           ))}
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, paddingLeft: 12 }}>
+            {!demoMode && state.walletCredits >= 0 && (
+              <a href="/profile" style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 100, background: '#F0FDF4', border: '1px solid #BBF7D0', textDecoration: 'none' }}>
+                <span style={{ fontSize: 12 }}>🪙</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#16A34A', fontFamily: 'monospace' }}>{state.walletCredits} cr</span>
+              </a>
+            )}
             {!demoMode && (
               <button onClick={() => dispatch({ type: 'SET_TAB', tab: 'settings' })} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 100, background: state.apiKey ? '#F0FDF4' : 'rgba(239,68,68,0.06)', border: `1px solid ${state.apiKey ? '#BBF7D0' : 'rgba(239,68,68,0.25)'}`, cursor: 'pointer' }}>
                 <Key size={10} color={state.apiKey ? '#16A34A' : '#EF4444'} />
@@ -250,6 +256,7 @@ function TrackWorkspace({ demoMode }: { demoMode: boolean }) {
   const [interviewNotes, setInterviewNotes] = useState('');
   const [scoringLoading, setScoringLoading] = useState(false);
   const [roadmapLoading, setRoadmapLoading] = useState(false);
+  const [actionError, setActionError] = useState('');
   const [trackCvText, setTrackCvText] = useState('');
   const [trackCvFile, setTrackCvFile] = useState<string | null>(null);
   const [trackCvUploading, setTrackCvUploading] = useState(false);
@@ -383,9 +390,10 @@ function TrackWorkspace({ demoMode }: { demoMode: boolean }) {
             {s.showBtn && activeTrack.jd_text && !demoMode && (
               <button onClick={async () => {
                 if (!trackCvText.trim()) return;
-                setScoringLoading(true);
-                await calculateJobrScore({ ...activeTrack, cv_text: trackCvText });
-                setScoringLoading(false);
+                setScoringLoading(true); setActionError('');
+                try { await calculateJobrScore({ ...activeTrack, cv_text: trackCvText }); }
+                catch (e: any) { setActionError(e.message); }
+                finally { setScoringLoading(false); }
               }} disabled={scoringLoading || !trackCvText.trim()} style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 4, background: trackCvText.trim() ? '#F8F5F0' : 'rgba(239,68,68,0.05)', border: `1px solid ${trackCvText.trim() ? '#E7E5E4' : 'rgba(239,68,68,0.2)'}`, borderRadius: 100, padding: '4px 9px', color: trackCvText.trim() ? '#71717A' : '#EF4444', fontSize: 10, cursor: trackCvText.trim() ? 'pointer' : 'not-allowed', fontWeight: 600 }}>
                 <RefreshCw size={9} style={scoringLoading ? { animation: 'spin 1s linear infinite' } : {}} />
                 {scoringLoading ? 'Scoring...' : trackCvText.trim() ? 'Score me' : 'Add CV first'}
@@ -518,11 +526,25 @@ function TrackWorkspace({ demoMode }: { demoMode: boolean }) {
         </div>
       )}
 
+      {actionError && (
+        <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, fontSize: 12, color: '#EF4444', marginBottom: 4 }}>
+          {actionError}
+          {actionError.includes('key') || actionError.includes('quota') ? (
+            <a href="#" onClick={() => dispatch({ type: 'SET_TAB', tab: 'settings' })} style={{ display: 'block', marginTop: 4, color: '#F97316', fontWeight: 700 }}>Go to Settings →</a>
+          ) : null}
+        </div>
+      )}
+
       {activeTrack.status === 'rejected' && !roadmap && (
         <div style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: 16, padding: 20, position: 'relative' }}>
           <div style={{ ...(demoMode ? { filter: 'blur(2px)' } : {}) }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#EF4444', fontFamily: 'monospace', marginBottom: 10 }}>📈 GENERATE IMPROVEMENT ROADMAP</div>
-            <button onClick={async () => { setRoadmapLoading(true); await generateRoadmap(activeTrack); setRoadmapLoading(false); }} disabled={roadmapLoading} style={{ background: '#EF4444', color: '#fff', border: 'none', borderRadius: 100, padding: '10px 24px', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}>
+            <button onClick={async () => {
+              setRoadmapLoading(true); setActionError('');
+              try { await generateRoadmap(activeTrack); }
+              catch (e: any) { setActionError(e.message); }
+              finally { setRoadmapLoading(false); }
+            }} disabled={roadmapLoading} style={{ background: '#EF4444', color: '#fff', border: 'none', borderRadius: 100, padding: '10px 24px', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}>
               {roadmapLoading ? <><RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} /> Generating...</> : <><Sparkles size={13} /> Generate My Roadmap</>}
             </button>
           </div>
