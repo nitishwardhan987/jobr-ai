@@ -91,8 +91,9 @@ export default function MentorDashboard() {
   };
 
   if (loading) return (
-    <div style={{ background: '#1C1C2E', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: 36, height: 36, border: '3px solid rgba(13,148,136,0.3)', borderTopColor: '#0D9488', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+    <div style={{ background: '#F8F5F0', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+      <div style={{ width: 36, height: 36, border: '3px solid #FED7AA', borderTopColor: '#F97316', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+      <span style={{ color: '#71717A', fontSize: 14 }}>Loading your dashboard...</span>
     </div>
   );
 
@@ -101,24 +102,24 @@ export default function MentorDashboard() {
   const completed = bookings.filter(b => b.status === 'completed');
 
   return (
-    <div style={{ background: '#1C1C2E', minHeight: '100vh' }}>
+    <div style={{ background: '#F8F5F0', minHeight: '100vh' }}>
       {/* Header */}
-      <div style={{ background: 'linear-gradient(145deg, rgba(13,148,136,0.12) 0%, transparent 60%)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '28px 24px' }}>
+      <div style={{ background: 'linear-gradient(145deg, rgba(249,115,22,0.06) 0%, transparent 60%)', borderBottom: '1px solid #E7E5E4', padding: '28px 24px', paddingTop: 'calc(28px + 64px)' }}>
         <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 14 }}>
           <div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#0D9488', fontFamily: 'monospace', marginBottom: 4 }}>MENTOR DASHBOARD</div>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 900, color: '#F1F0FF', margin: 0 }}>Welcome back, {mentor?.name?.split(' ')[0]}</h1>
-            <div style={{ fontSize: 13, color: '#64748B', marginTop: 4 }}>{mentor?.domain} · {mentor?.mentor_role} @ {mentor?.current_company}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#F97316', fontFamily: 'monospace', marginBottom: 4 }}>MENTOR DASHBOARD</div>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 900, color: '#18181B', margin: 0 }}>Welcome back, {mentor?.name?.split(' ')[0]}</h1>
+            <div style={{ fontSize: 13, color: '#71717A', marginTop: 4 }}>{mentor?.domain} · {mentor?.mentor_role} @ {mentor?.current_company}</div>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {[
-              { label: 'Total Sessions', value: mentor?.total_sessions || 0, color: '#0D9488' },
-              { label: 'Rating', value: mentor?.rating ? `⭐ ${mentor.rating}` : 'New', color: '#F59E0B' },
-              { label: 'Wallet', value: `${mentor?.wallet_credits || 0} cr`, color: '#A78BFA' },
+              { label: 'Total Sessions', value: mentor?.total_sessions || 0, color: '#F97316' },
+              { label: 'Rating', value: mentor?.rating ? `⭐ ${mentor.rating}` : 'New', color: '#0D9488' },
+              { label: 'Wallet', value: `${mentor?.wallet_credits || 0} cr`, color: '#7C3AED' },
             ].map(s => (
-              <div key={s.label} style={{ textAlign: 'center', padding: '10px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12 }}>
+              <div key={s.label} style={{ textAlign: 'center', padding: '10px 16px', background: '#fff', border: '1px solid #E7E5E4', borderRadius: 12, boxShadow: '0 1px 4px rgba(24,24,27,0.05)' }}>
                 <div style={{ fontSize: 20, fontWeight: 900, color: s.color, fontFamily: 'var(--font-display)' }}>{s.value}</div>
-                <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>{s.label}</div>
+                <div style={{ fontSize: 10, color: '#A1A1AA', marginTop: 2 }}>{s.label}</div>
               </div>
             ))}
           </div>
@@ -138,13 +139,13 @@ export default function MentorDashboard() {
         )}
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: 24 }}>
+        <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #E7E5E4', marginBottom: 24 }}>
           {[
             { id: 'bookings', label: `Bookings (${bookings.length})` },
             { id: 'wallet',   label: `Wallet — ${mentor?.wallet_credits || 0} credits` },
             { id: 'profile',  label: 'My Profile' },
           ].map(t => (
-            <button key={t.id} onClick={() => setTab(t.id as any)} style={{ padding: '11px 18px', background: 'transparent', border: 'none', cursor: 'pointer', borderBottom: tab === t.id ? '2px solid #0D9488' : '2px solid transparent', color: tab === t.id ? '#0D9488' : '#475569', fontSize: 13, fontWeight: tab === t.id ? 700 : 500, fontFamily: 'var(--font-display)', whiteSpace: 'nowrap', marginBottom: '-1px', transition: 'all 0.15s' }}>
+            <button key={t.id} onClick={() => setTab(t.id as any)} style={{ padding: '11px 18px', background: 'transparent', border: 'none', cursor: 'pointer', borderBottom: tab === t.id ? '2px solid #F97316' : '2px solid transparent', color: tab === t.id ? '#F97316' : '#71717A', fontSize: 13, fontWeight: tab === t.id ? 700 : 500, fontFamily: 'var(--font-display)', whiteSpace: 'nowrap', marginBottom: '-1px', transition: 'all 0.15s' }}>
               {t.label}
             </button>
           ))}
@@ -155,9 +156,9 @@ export default function MentorDashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {bookings.length === 0 ? (
               <div style={{ textAlign: 'center', padding: 60 }}>
-                <Calendar size={40} color="#334155" style={{ marginBottom: 12 }} />
-                <div style={{ fontSize: 16, color: '#475569', fontWeight: 600 }}>No bookings yet</div>
-                <div style={{ fontSize: 13, color: '#334155', marginTop: 6 }}>When students book you, requests appear here</div>
+                <Calendar size={40} color="#D4D0CA" style={{ marginBottom: 12 }} />
+                <div style={{ fontSize: 16, color: '#71717A', fontWeight: 600 }}>No bookings yet</div>
+                <div style={{ fontSize: 13, color: '#A1A1AA', marginTop: 6 }}>When students book you, requests appear here</div>
               </div>
             ) : bookings.map(bk => <BookingCard key={bk.id} booking={bk} mentor={mentor} onConfirm={confirmBooking} onDeliver={markDelivered} />)}
           </div>
@@ -168,40 +169,40 @@ export default function MentorDashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 8 }}>
               {[
-                { label: 'AVAILABLE CREDITS', value: `${mentor?.wallet_credits || 0} cr`, sub: `= ₹${(mentor?.wallet_credits || 0) * 100}`, color: '#0D9488' },
-                { label: 'TOTAL EARNED', value: `${mentor?.total_earned || 0} cr`, sub: `= ₹${(mentor?.total_earned || 0) * 100}`, color: '#A78BFA' },
-                { label: 'SESSIONS DONE', value: mentor?.total_sessions || 0, sub: 'completed sessions', color: '#F59E0B' },
+                { label: 'AVAILABLE CREDITS', value: `${mentor?.wallet_credits || 0} cr`, sub: `= ₹${(mentor?.wallet_credits || 0) * 100}`, color: '#F97316' },
+                { label: 'TOTAL EARNED', value: `${mentor?.total_earned || 0} cr`, sub: `= ₹${(mentor?.total_earned || 0) * 100}`, color: '#7C3AED' },
+                { label: 'SESSIONS DONE', value: mentor?.total_sessions || 0, sub: 'completed sessions', color: '#0D9488' },
               ].map(s => (
-                <div key={s.label} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: '16px 18px' }}>
-                  <div style={{ fontSize: 10, color: '#475569', fontFamily: 'monospace', marginBottom: 6 }}>{s.label}</div>
+                <div key={s.label} style={{ background: '#fff', border: '1px solid #E7E5E4', borderRadius: 14, padding: '16px 18px', boxShadow: '0 1px 4px rgba(24,24,27,0.05)' }}>
+                  <div style={{ fontSize: 10, color: '#A1A1AA', fontFamily: 'monospace', marginBottom: 6 }}>{s.label}</div>
                   <div style={{ fontSize: 28, fontWeight: 900, color: s.color, fontFamily: 'var(--font-display)', lineHeight: 1 }}>{s.value}</div>
-                  <div style={{ fontSize: 11, color: '#334155', marginTop: 4 }}>{s.sub}</div>
+                  <div style={{ fontSize: 11, color: '#71717A', marginTop: 4 }}>{s.sub}</div>
                 </div>
               ))}
             </div>
 
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 22 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#0D9488', fontFamily: 'monospace', marginBottom: 14 }}>REQUEST WITHDRAWAL</div>
-              <p style={{ fontSize: 13, color: '#64748B', marginBottom: 16, lineHeight: 1.5 }}>
+            <div style={{ background: '#fff', border: '1px solid #E7E5E4', borderRadius: 16, padding: 22, boxShadow: '0 1px 4px rgba(24,24,27,0.05)' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#F97316', fontFamily: 'monospace', marginBottom: 14 }}>REQUEST WITHDRAWAL</div>
+              <p style={{ fontSize: 13, color: '#71717A', marginBottom: 16, lineHeight: 1.5 }}>
                 We process withdrawals within 24 hours. 1 credit = ₹100.
               </p>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
                 <div style={{ flex: 2, minWidth: 160 }}>
-                  <label style={{ fontSize: 10, color: '#475569', fontFamily: 'monospace', display: 'block', marginBottom: 5 }}>UPI ID</label>
+                  <label style={{ fontSize: 10, color: '#A1A1AA', fontFamily: 'monospace', display: 'block', marginBottom: 5 }}>UPI ID</label>
                   <input className="input" placeholder="yourname@upi" value={withdrawForm.upi_id} onChange={e => setWithdrawForm(f => ({ ...f, upi_id: e.target.value }))} style={{ fontSize: 13 }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 100 }}>
-                  <label style={{ fontSize: 10, color: '#475569', fontFamily: 'monospace', display: 'block', marginBottom: 5 }}>CREDITS</label>
+                  <label style={{ fontSize: 10, color: '#A1A1AA', fontFamily: 'monospace', display: 'block', marginBottom: 5 }}>CREDITS</label>
                   <input type="number" className="input" placeholder="10" min={1} max={mentor?.wallet_credits || 0} value={withdrawForm.credits || ''} onChange={e => setWithdrawForm(f => ({ ...f, credits: Number(e.target.value) }))} style={{ fontSize: 13 }} />
                 </div>
               </div>
               {withdrawForm.credits > 0 && (
-                <div style={{ padding: '8px 12px', background: 'rgba(13,148,136,0.06)', border: '1px solid rgba(13,148,136,0.12)', borderRadius: 8, fontSize: 12, color: '#0D9488', marginBottom: 12 }}>
+                <div style={{ padding: '8px 12px', background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.15)', borderRadius: 8, fontSize: 12, color: '#F97316', marginBottom: 12 }}>
                   You'll receive ₹{withdrawForm.credits * 100} to {withdrawForm.upi_id || 'your UPI ID'}
                 </div>
               )}
-              {error && <div style={{ padding: '8px 12px', background: 'rgba(239,68,68,0.08)', borderRadius: 8, fontSize: 12, color: '#EF4444', marginBottom: 10 }}>{error}</div>}
-              <button onClick={requestWithdrawal} disabled={withdrawing || !withdrawForm.upi_id || withdrawForm.credits < 1} style={{ background: 'linear-gradient(135deg, #0D9488, #0891B2)', color: '#fff', border: 'none', borderRadius: 100, padding: '11px 28px', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, opacity: withdrawing ? 0.7 : 1, fontFamily: 'var(--font-display)' }}>
+              {error && <div style={{ padding: '8px 12px', background: '#FFF1F2', border: '1px solid #FECDD3', borderRadius: 8, fontSize: 12, color: '#DC2626', marginBottom: 10 }}>{error}</div>}
+              <button onClick={requestWithdrawal} disabled={withdrawing || !withdrawForm.upi_id || withdrawForm.credits < 1} style={{ background: withdrawing || !withdrawForm.upi_id || withdrawForm.credits < 1 ? '#E7E5E4' : '#F97316', color: withdrawing || !withdrawForm.upi_id || withdrawForm.credits < 1 ? '#A1A1AA' : '#fff', border: 'none', borderRadius: 100, padding: '11px 28px', fontWeight: 700, fontSize: 13, cursor: withdrawing || !withdrawForm.upi_id || withdrawForm.credits < 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font-display)', boxShadow: withdrawing || !withdrawForm.upi_id || withdrawForm.credits < 1 ? 'none' : '0 4px 14px rgba(249,115,22,0.28)' }}>
                 {withdrawing ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Processing...</> : <><Wallet size={14} /> Request Withdrawal</>}
               </button>
             </div>
@@ -210,25 +211,25 @@ export default function MentorDashboard() {
 
         {/* PROFILE TAB */}
         {tab === 'profile' && (
-          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 22 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#0D9488', fontFamily: 'monospace', marginBottom: 16 }}>YOUR PUBLIC PROFILE</div>
+          <div style={{ background: '#fff', border: '1px solid #E7E5E4', borderRadius: 16, padding: 22, boxShadow: '0 1px 4px rgba(24,24,27,0.05)' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#F97316', fontFamily: 'monospace', marginBottom: 16 }}>YOUR PUBLIC PROFILE</div>
             <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap' }}>
-              <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'linear-gradient(135deg, #0D9488, #06B6D4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 900, color: '#fff', flexShrink: 0 }}>{mentor?.name?.[0]}</div>
+              <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'linear-gradient(135deg, #7C3AED, #F97316)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 900, color: '#fff', flexShrink: 0 }}>{mentor?.name?.[0]}</div>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#F1F0FF', fontFamily: 'var(--font-display)' }}>{mentor?.name}</div>
-                <div style={{ fontSize: 13, color: '#64748B' }}>{mentor?.mentor_role} · {mentor?.current_company}</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#18181B', fontFamily: 'var(--font-display)' }}>{mentor?.name}</div>
+                <div style={{ fontSize: 13, color: '#71717A' }}>{mentor?.mentor_role} · {mentor?.current_company}</div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
                   {mentor?.is_verified && <span style={{ fontSize: 10, color: '#0D9488', background: 'rgba(13,148,136,0.1)', border: '1px solid rgba(13,148,136,0.2)', padding: '2px 8px', borderRadius: 100, fontFamily: 'monospace' }}>VERIFIED</span>}
-                  <span style={{ fontSize: 10, color: '#64748B', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', padding: '2px 8px', borderRadius: 100, fontFamily: 'monospace' }}>{mentor?.domain}</span>
+                  <span style={{ fontSize: 10, color: '#71717A', background: '#F8F5F0', border: '1px solid #E7E5E4', padding: '2px 8px', borderRadius: 100, fontFamily: 'monospace' }}>{mentor?.domain}</span>
                 </div>
               </div>
             </div>
-            <p style={{ fontSize: 14, color: '#94A3B8', lineHeight: 1.65, marginBottom: 20 }}>{mentor?.bio}</p>
+            <p style={{ fontSize: 14, color: '#52525B', lineHeight: 1.65, marginBottom: 20 }}>{mentor?.bio}</p>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <a href={`/mentor/${mentor?.id}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(13,148,136,0.1)', border: '1px solid rgba(13,148,136,0.2)', color: '#0D9488', textDecoration: 'none', padding: '9px 18px', borderRadius: 100, fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-display)' }}>
+              <a href={`/mentor/${mentor?.id}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#F97316', color: '#fff', textDecoration: 'none', padding: '9px 18px', borderRadius: 100, fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-display)', boxShadow: '0 4px 14px rgba(249,115,22,0.28)' }}>
                 <ExternalLink size={13} /> View My Profile
               </a>
-              <a href="/mentor/onboard" style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#94A3B8', textDecoration: 'none', padding: '9px 18px', borderRadius: 100, fontSize: 13, fontWeight: 600 }}>
+              <a href="/mentor/onboard" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#F8F5F0', border: '1px solid #E7E5E4', color: '#52525B', textDecoration: 'none', padding: '9px 18px', borderRadius: 100, fontSize: 13, fontWeight: 600 }}>
                 Edit Profile
               </a>
             </div>
@@ -247,11 +248,11 @@ function BookingCard({ booking: b, mentor, onConfirm, onDeliver }: { booking: an
   const cfg = STATUS_CONFIG[b.status] || STATUS_CONFIG['cancelled'];
 
   return (
-    <div style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${b.status === 'pending_confirmation' ? 'rgba(249,115,22,0.25)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 14, overflow: 'hidden' }}>
+    <div style={{ background: '#fff', border: `1px solid ${b.status === 'pending_confirmation' ? 'rgba(249,115,22,0.35)' : '#E7E5E4'}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 4px rgba(24,24,27,0.05)' }}>
       <div onClick={() => setExpanded(!expanded)} style={{ padding: '14px 18px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#F1F0FF', fontFamily: 'var(--font-display)' }}>{b.session_type}</div>
-          <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#18181B', fontFamily: 'var(--font-display)' }}>{b.session_type}</div>
+          <div style={{ fontSize: 12, color: '#71717A', marginTop: 2 }}>
             {b.student_name || b.student_email} · {b.slot_date} at {b.slot_time} · {b.session_price_credits} credits
           </div>
         </div>
@@ -259,10 +260,10 @@ function BookingCard({ booking: b, mentor, onConfirm, onDeliver }: { booking: an
       </div>
 
       {expanded && (
-        <div style={{ padding: '0 18px 18px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+        <div style={{ padding: '0 18px 18px', borderTop: '1px solid #F4F2EE' }}>
           {b.completion_notes && (
-            <div style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, fontSize: 13, color: '#94A3B8', marginTop: 14, marginBottom: 14 }}>
-              <div style={{ fontSize: 10, color: '#475569', fontFamily: 'monospace', marginBottom: 4 }}>STUDENT NOTES</div>
+            <div style={{ padding: '10px 14px', background: '#F8F5F0', borderRadius: 10, fontSize: 13, color: '#52525B', marginTop: 14, marginBottom: 14 }}>
+              <div style={{ fontSize: 10, color: '#A1A1AA', fontFamily: 'monospace', marginBottom: 4 }}>STUDENT NOTES</div>
               {b.completion_notes}
             </div>
           )}
@@ -270,14 +271,14 @@ function BookingCard({ booking: b, mentor, onConfirm, onDeliver }: { booking: an
           {b.status === 'pending_confirmation' && (
             <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div>
-                <label style={{ fontSize: 10, color: '#475569', fontFamily: 'monospace', display: 'block', marginBottom: 5 }}>YOUR MEETING LINK (shared with student on confirmation)</label>
+                <label style={{ fontSize: 10, color: '#A1A1AA', fontFamily: 'monospace', display: 'block', marginBottom: 5 }}>YOUR MEETING LINK (shared with student on confirmation)</label>
                 <input className="input" placeholder="https://zoom.us/j/..." value={meetLink} onChange={e => setMeetLink(e.target.value)} style={{ fontSize: 13 }} />
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={() => onConfirm(b.id, meetLink)} style={{ flex: 1, background: 'linear-gradient(135deg, #0D9488, #0891B2)', color: '#fff', border: 'none', borderRadius: 100, padding: '10px', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-display)' }}>
+                <button onClick={() => onConfirm(b.id, meetLink)} style={{ flex: 1, background: '#F97316', color: '#fff', border: 'none', borderRadius: 100, padding: '10px', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-display)', boxShadow: '0 4px 12px rgba(249,115,22,0.28)' }}>
                   ✓ Confirm Booking
                 </button>
-                <button onClick={() => onConfirm(b.id, '')} style={{ flex: 1, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.18)', color: '#EF4444', borderRadius: 100, padding: '10px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                <button onClick={() => onConfirm(b.id, '')} style={{ flex: 1, background: '#FFF1F2', border: '1px solid #FECDD3', color: '#DC2626', borderRadius: 100, padding: '10px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
                   ✗ Decline
                 </button>
               </div>
@@ -292,10 +293,10 @@ function BookingCard({ booking: b, mentor, onConfirm, onDeliver }: { booking: an
                 </a>
               )}
               <div>
-                <label style={{ fontSize: 10, color: '#475569', fontFamily: 'monospace', display: 'block', marginBottom: 5 }}>SESSION COMPLETION NOTES (optional)</label>
+                <label style={{ fontSize: 10, color: '#A1A1AA', fontFamily: 'monospace', display: 'block', marginBottom: 5 }}>SESSION COMPLETION NOTES (optional)</label>
                 <textarea className="input" placeholder="What was covered in the session..." value={notes} onChange={e => setNotes(e.target.value)} style={{ height: 70, resize: 'none', fontSize: 13 }} />
               </div>
-              <button onClick={() => onDeliver(b.id, notes)} style={{ background: 'linear-gradient(135deg, #10B981, #059669)', color: '#fff', border: 'none', borderRadius: 100, padding: '10px', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-display)' }}>
+              <button onClick={() => onDeliver(b.id, notes)} style={{ background: '#16A34A', color: '#fff', border: 'none', borderRadius: 100, padding: '10px', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-display)', boxShadow: '0 4px 12px rgba(22,163,74,0.25)' }}>
                 ✓ Mark Session as Delivered — Claim {b.session_price_credits - Math.round(b.session_price_credits * 0.1)} credits
               </button>
             </div>

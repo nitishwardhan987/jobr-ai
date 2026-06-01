@@ -184,7 +184,7 @@ export default function ProfilePage() {
     <div style={{ background: '#F8F5F0', minHeight: '100vh' }}>
 
       {/* Header */}
-      <div style={{ background: 'linear-gradient(145deg, rgba(249,115,22,0.06) 0%, transparent 60%)', borderBottom: '1px solid #E7E5E4', padding: 'clamp(24px,4vw,40px) 20px' }}>
+      <div style={{ background: 'linear-gradient(145deg, rgba(249,115,22,0.06) 0%, transparent 60%)', borderBottom: '1px solid #E7E5E4', padding: 'clamp(24px,4vw,40px) 20px', paddingTop: 'calc(clamp(24px,4vw,40px) + 64px)' }}>
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
           <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
 
