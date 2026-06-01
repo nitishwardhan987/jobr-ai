@@ -268,12 +268,22 @@ function TrackWorkspace({ demoMode }: { demoMode: boolean }) {
     setTrackCvFile(null);
     setTrackCvError('');
     try {
+      const isDoc = file.name.endsWith('.doc') || file.name.endsWith('.docx') || file.type.includes('msword') || file.type.includes('officedocument');
       if (file.type === 'application/pdf') {
         const form = new FormData();
         form.append('file', file);
         const res = await fetch('/api/extract-pdf', { method: 'POST', body: form });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'PDF extraction failed');
+        setTrackCvText(data.text);
+        localStorage.setItem('jobr_last_cv', data.text);
+        setTrackCvFile(file.name);
+      } else if (isDoc) {
+        const form = new FormData();
+        form.append('file', file);
+        const res = await fetch('/api/extract-doc', { method: 'POST', body: form });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'DOCX extraction failed');
         setTrackCvText(data.text);
         localStorage.setItem('jobr_last_cv', data.text);
         setTrackCvFile(file.name);
@@ -567,12 +577,22 @@ function CVPrepTab({ demoMode }: { demoMode: boolean }) {
     setUploading(true);
     setUploadedFile(null);
     try {
+      const isDoc = file.name.endsWith('.doc') || file.name.endsWith('.docx') || file.type.includes('msword') || file.type.includes('officedocument');
       if (file.type === 'application/pdf') {
         const form = new FormData();
         form.append('file', file);
         const res = await fetch('/api/extract-pdf', { method: 'POST', body: form });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'PDF extraction failed');
+        setCvText(data.text);
+        localStorage.setItem('jobr_last_cv', data.text);
+        setUploadedFile(file.name);
+      } else if (isDoc) {
+        const form = new FormData();
+        form.append('file', file);
+        const res = await fetch('/api/extract-doc', { method: 'POST', body: form });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'DOCX extraction failed');
         setCvText(data.text);
         localStorage.setItem('jobr_last_cv', data.text);
         setUploadedFile(file.name);

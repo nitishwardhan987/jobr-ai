@@ -63,7 +63,7 @@ ${jd}`;
 
 async function callJobrGemini(prompt: string): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('Jobr AI key not configured. Please add your own API key in Settings.');
+  if (!apiKey) throw new Error('Add your own free Gemini key in Settings — get one at aistudio.google.com/app/apikey');
   const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest'];
   let lastError = '';
   for (const model of models) {
@@ -81,7 +81,9 @@ async function callJobrGemini(prompt: string): Promise<string> {
     const data = await res.json();
     if (res.ok) return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     lastError = data?.error?.message || `Model ${model} failed`;
-    if (!lastError.includes('not found') && !lastError.includes('not supported') && !lastError.includes('quota')) break;
+    const isQuota = res.status === 429 || lastError.toLowerCase().includes('quota') || lastError.toLowerCase().includes('resource_exhausted');
+    if (isQuota) throw new Error("Jobr's shared AI quota is full right now. Add your own free Gemini key in Settings — takes 30 seconds at aistudio.google.com/app/apikey");
+    if (!lastError.includes('not found') && !lastError.includes('not supported')) break;
   }
   throw new Error(lastError);
 }
